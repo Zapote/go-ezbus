@@ -30,6 +30,6 @@ func TestNoInvokationOfHandler(t *testing.T) {
 	r.handle("NoMessageToMessage", NewMessage(nil, nil))
 
 	if h {
-		t.Error("Message not handled")
+		t.Error("Message handled")
 	}
 }

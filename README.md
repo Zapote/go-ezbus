@@ -8,4 +8,7 @@ r.Handle("placeOrder", func(message) {
 })
 
 b := ezbus.rabbitmq.NewBroker();
+
+bus := ezbus.NewBus(r,b)
+
 ```
