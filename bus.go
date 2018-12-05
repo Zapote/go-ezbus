@@ -7,16 +7,16 @@ type Bus struct {
 }
 
 // NewBus creates a bus instance.
-func NewBus(endpoint string, b Broker) Bus {
+func NewBus(ep string, b Broker) *Bus {
 	bus := Bus{
-		endpoint: endpoint,
+		endpoint: ep,
 		broker:   b,
 	}
 
-	return bus
+	return &bus
 }
 
-// Send message to destingation
+// Send message to destination
 func (b *Bus) Send(dest string, msg interface{}) error {
 	return b.broker.send(dest, msg)
 }
