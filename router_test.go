@@ -9,7 +9,7 @@ var r = NewRouter()
 func TestInvokeCorrectHandler(t *testing.T) {
 	var h = false
 
-	r.Handle("TestMessage", func(m *Message) {
+	r.Handle("TestMessage", func(m Message) {
 		h = true
 	})
 
@@ -23,7 +23,7 @@ func TestInvokeCorrectHandler(t *testing.T) {
 func TestNoInvokationOfHandler(t *testing.T) {
 	var h = false
 
-	r.Handle("TestMessage", func(m *Message) {
+	r.Handle("TestMessage", func(m Message) {
 		h = true
 	})
 

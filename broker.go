@@ -2,15 +2,21 @@ package ezbus
 
 // Broker interface
 type Broker interface {
-	send(dest string, msg interface{}) error
+	Sender
+	Publisher
+	Receiver
 }
 
 // Sender interface
 type Sender interface {
-	send(dest string, msg interface{}) error
+	Send(dest string, m Message) error
 }
 
 // Publisher interface
 type Publisher interface {
-	publish(msg interface{}) error
+	Publish(m Message) error
+}
+
+type Receiver interface {
+	Start(chan Message) error
 }

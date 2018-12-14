@@ -5,7 +5,8 @@ type Message struct {
 	Body    []byte
 }
 
-func NewMessage(h map[string]string, b []byte) *Message {
-	m := Message{h, b}
-	return &m
+//NewMessage creates a new Message instance
+// Using h as headers and b as body
+func NewMessage(h map[string]string, b []byte) Message {
+	return Message{h, b}
 }
