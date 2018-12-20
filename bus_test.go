@@ -43,12 +43,22 @@ func TestReceive(t *testing.T) {
 		handled = true
 	})
 
-	bus.listen()
+	bus.Start()
 	b.invoke()
 
 	if !handled {
 		t.Errorf("Message should be handled")
 	}
+}
+
+func TestReceiveError(t *testing.T) {
+	router.Handle("FakeMessage", func(m Message) {
+		panic("Failed to handle")
+	})
+
+	bus.Start()
+	b.invoke()
+	bus.Stop()
 }
 
 type FakeMessage struct {

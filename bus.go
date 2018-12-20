@@ -2,6 +2,7 @@ package ezbus
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"reflect"
 	"time"
@@ -9,9 +10,11 @@ import (
 
 // Bus for publish, send and receive messages
 type Bus struct {
-	endpoint string
-	broker   Broker
-	router   Router
+	endpoint       string
+	broker         Broker
+	router         Router
+	forever        chan (bool)
+	messageChannel chan (Message)
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
@@ -26,23 +29,36 @@ func NewSendOnlyBus(b Broker) *Bus {
 	return &bus
 }
 
-func (b *Bus) listen() {
-	c := make(chan Message)
-	err := b.broker.Start(c)
+func (b *Bus) Start() {
+	b.messageChannel = make(chan Message)
+	err := b.broker.Start(b.messageChannel)
 
-	if err == nil {
-		go func() {
-			m := <-c
+	if err != nil {
+		log.Panicf("Failed to start broker")
+		panic(err)
+	}
+
+	b.forever = make(chan bool)
+
+	go func() {
+		for m := range b.messageChannel {
 			n := m.Headers["message-name"]
 			b.router.handle(n, m)
-		}()
-	}
+		}
+	}()
+
+	<-b.forever
+}
+
+func (b *Bus) Stop() {
+	close(b.messageChannel)
+	b.forever <- false
+	close(b.forever)
 }
 
 // Send message to destination
 func (b *Bus) Send(dest string, msg interface{}) error {
 	n := reflect.TypeOf(msg).Name()
-
 	json, err := json.Marshal(msg)
 	if err != nil {
 		return err

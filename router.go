@@ -19,9 +19,9 @@ func (r *Router) Handle(m string, h Handler) {
 }
 
 func (r *Router) handle(n string, m Message) {
-	h, ok := r.handlers[n]
+	handler, ok := r.handlers[n]
 	if ok {
-		h(m)
+		handler(m)
 	} else {
 		log.Printf("No handler found for message name %s", n)
 	}
