@@ -2,6 +2,7 @@ package ezbus
 
 import (
 	"encoding/json"
+	"log"
 	"testing"
 )
 
@@ -45,6 +46,7 @@ func TestReceive(t *testing.T) {
 
 	bus.Start()
 	b.invoke()
+	bus.Stop()
 
 	if !handled {
 		t.Errorf("Message should be handled")
@@ -86,8 +88,13 @@ func (b *FakeBroker) Start(c chan Message) error {
 	return nil
 }
 
+func (b *FakeBroker) Stop() {
+
+}
+
 func (b *FakeBroker) invoke() {
 	m := make(map[string]string)
 	m["message-name"] = "FakeMessage"
 	b.rc <- NewMessage(m, nil)
+	log.Println("invoked")
 }

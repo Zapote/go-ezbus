@@ -25,8 +25,7 @@ func NewBus(b Broker, r Router) *Bus {
 
 // NewSendOnlyBus creates a bus instance for sending messages.
 func NewSendOnlyBus(b Broker) *Bus {
-	bus := Bus{broker: b}
-	return &bus
+	return &Bus{broker: b}
 }
 
 func (b *Bus) Start() {
@@ -38,22 +37,16 @@ func (b *Bus) Start() {
 		panic(err)
 	}
 
-	b.forever = make(chan bool)
-
 	go func() {
 		for m := range b.messageChannel {
 			n := m.Headers["message-name"]
 			b.router.handle(n, m)
 		}
 	}()
-
-	<-b.forever
 }
 
 func (b *Bus) Stop() {
-	close(b.messageChannel)
-	b.forever <- false
-	close(b.forever)
+	b.broker.Stop()
 }
 
 // Send message to destination

@@ -19,4 +19,5 @@ type Publisher interface {
 
 type Receiver interface {
 	Start(chan Message) error
+	Stop()
 }

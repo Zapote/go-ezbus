@@ -86,6 +86,10 @@ func (b *Broker) Start(c chan ezbus.Message) error {
 	return nil
 }
 
+func (b *Broker) Stop() {
+
+}
+
 func extractHeaders(h amqp.Table) map[string]string {
 	headers := make(map[string]string)
 	for k, v := range h {
