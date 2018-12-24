@@ -34,7 +34,7 @@ func recoverDial() {
 	}
 }
 
-func (b *Broker) Send(n string, m ezbus.Message) error {
+func (b *Broker) Send(dst string, m ezbus.Message) error {
 	headers := make(amqp.Table)
 
 	for key, value := range m.Headers {
@@ -43,7 +43,7 @@ func (b *Broker) Send(n string, m ezbus.Message) error {
 
 	err := b.ch.Publish(
 		"",    // exchange
-		n,     // routing key
+		dst,   // routing key
 		false, // mandatory
 		false, // immediate
 		amqp.Publishing{

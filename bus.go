@@ -10,16 +10,15 @@ import (
 
 // Bus for publish, send and receive messages
 type Bus struct {
-	endpoint       string
-	broker         Broker
-	router         Router
-	forever        chan (bool)
-	messageChannel chan (Message)
+	broker  Broker
+	router  Router
+	done    chan (struct{})
+	forward chan (Message)
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
 func NewBus(b Broker, r Router) *Bus {
-	bus := Bus{broker: b, router: r}
+	bus := Bus{b, r, make(chan struct{}), make(chan Message)}
 	return &bus
 }
 
@@ -29,44 +28,60 @@ func NewSendOnlyBus(b Broker) *Bus {
 }
 
 func (b *Bus) Start() {
-	b.messageChannel = make(chan Message)
-	err := b.broker.Start(b.messageChannel)
+	err := b.broker.Start(b.forward)
 
 	if err != nil {
 		log.Panicf("Failed to start broker")
 		panic(err)
 	}
 
-	go func() {
-		for m := range b.messageChannel {
-			n := m.Headers["message-name"]
-			b.router.handle(n, m)
-		}
-	}()
+	go b.handle()
 }
 
 func (b *Bus) Stop() {
-	b.broker.Stop()
+	go func() {
+		b.done <- struct{}{}
+	}()
 }
 
 // Send message to destination
-func (b *Bus) Send(dest string, msg interface{}) error {
-	n := reflect.TypeOf(msg).Name()
+func (b *Bus) Send(dst string, msg interface{}) error {
 	json, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
-	return b.broker.Send(dest, NewMessage(getHeaders(n), json))
+	t := reflect.TypeOf(msg)
+
+	return b.broker.Send(dst, NewMessage(getHeaders(t), json))
 }
 
-func getHeaders(messageName string) map[string]string {
+func (b *Bus) handle() {
+	for m := range b.forward {
+		n := m.Headers[MessageName]
+
+		retry(func() {
+			b.router.handle(n, m)
+		}, 5)
+	}
+}
+
+func recoverHandle(m Message) {
+	if err := recover(); err != nil {
+		log.Printf("Failed to handle '%s': %s", m.Headers[MessageName], err)
+	}
+}
+
+func getHeaders(msgType reflect.Type) map[string]string {
 	h := make(map[string]string)
-	h["message-name"] = messageName
-	h["time-sent"] = time.Now().Format("2006-01-02 15:04:05.000000")
+	h[MessageName] = msgType.Name()
+	h[MessageFullname] = msgType.String()
+	h[TimeSent] = time.Now().Format("2006-01-02 15:04:05.000000")
+
 	hostName, err := os.Hostname()
 	if err == nil {
-		h["sending-host"] = hostName
+		h[SendingHost] = hostName
 	}
+
 	return h
 }

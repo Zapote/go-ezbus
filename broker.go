@@ -9,7 +9,7 @@ type Broker interface {
 
 // Sender interface
 type Sender interface {
-	Send(dest string, m Message) error
+	Send(dst string, m Message) error
 }
 
 // Publisher interface
@@ -17,7 +17,7 @@ type Publisher interface {
 	Publish(m Message) error
 }
 
+//Receiver interface
 type Receiver interface {
 	Start(chan Message) error
-	Stop()
 }

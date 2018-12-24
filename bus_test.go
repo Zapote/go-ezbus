@@ -2,29 +2,30 @@ package ezbus
 
 import (
 	"encoding/json"
-	"log"
 	"testing"
+
+	"github.com/zapote/go-ezbus/assert"
 )
 
-var b = FakeBroker{}
+var broker = FakeBroker{}
 var ep = "service.address"
 var msg = FakeMessage{ID: "12300-1"}
 var router = NewRouter()
-var bus = NewBus(&b, router)
+var bus = NewBus(&broker, router)
 
 func TestSendCorrectDestination(t *testing.T) {
 	bus.Send(ep, msg)
 
-	if b.sentDest != ep {
-		t.Errorf("'%s' should be '%s'", b.sentDest, ep)
+	if broker.sentDest != ep {
+		t.Errorf("'%s' should be '%s'", broker.sentDest, ep)
 	}
 }
 
 func TestSendCorrectMessageWithCorrectHeaders(t *testing.T) {
 	bus.Send(ep, msg)
 
-	m := b.sentMessage.(Message)
-	mn := m.Headers["message-name"]
+	m := broker.sentMessage.(Message)
+	mn := m.Headers[MessageName]
 
 	if mn != "FakeMessage" {
 		t.Errorf("'%s' should be '%s'", mn, "FakeMessage")
@@ -39,28 +40,48 @@ func TestSendCorrectMessageWithCorrectHeaders(t *testing.T) {
 }
 
 func TestReceive(t *testing.T) {
+	done := make(chan struct{})
+	defer close(done)
 	handled := false
+
 	router.Handle("FakeMessage", func(m Message) {
 		handled = true
+		done <- struct{}{}
 	})
 
 	bus.Start()
-	b.invoke()
-	bus.Stop()
+	defer bus.Stop()
+	broker.invoke()
 
-	if !handled {
-		t.Errorf("Message should be handled")
-	}
+	<-done
+
+	assert.IsTrue(t, handled, "Message should be handled")
 }
 
 func TestReceiveError(t *testing.T) {
+	done := make(chan struct{}, 5)
+	defer close(done)
+	n := 0
+
 	router.Handle("FakeMessage", func(m Message) {
-		panic("Failed to handle")
+		n++
+
+		if n > 4 {
+			defer func() {
+				done <- struct{}{}
+			}()
+		}
+
+		panic("Error in message")
 	})
 
 	bus.Start()
-	b.invoke()
-	bus.Stop()
+	defer bus.Stop()
+	broker.invoke()
+
+	<-done
+
+	assert.IsEqual(t, n, 5)
 }
 
 type FakeMessage struct {
@@ -70,11 +91,11 @@ type FakeMessage struct {
 type FakeBroker struct {
 	sentMessage interface{}
 	sentDest    string
-	rc          chan Message
+	forward     chan Message
 }
 
-func (b *FakeBroker) Send(dest string, msg Message) error {
-	b.sentDest = dest
+func (b *FakeBroker) Send(dst string, msg Message) error {
+	b.sentDest = dst
 	b.sentMessage = msg
 	return nil
 }
@@ -83,18 +104,15 @@ func (b *FakeBroker) Publish(msg Message) error {
 	return nil
 }
 
-func (b *FakeBroker) Start(c chan Message) error {
-	b.rc = c
+func (b *FakeBroker) Start(forward chan Message) error {
+	b.forward = forward
 	return nil
 }
 
-func (b *FakeBroker) Stop() {
-
-}
-
 func (b *FakeBroker) invoke() {
-	m := make(map[string]string)
-	m["message-name"] = "FakeMessage"
-	b.rc <- NewMessage(m, nil)
-	log.Println("invoked")
+	go func() {
+		m := make(map[string]string)
+		m[MessageName] = "FakeMessage"
+		b.forward <- NewMessage(m, nil)
+	}()
 }
