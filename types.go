@@ -12,7 +12,13 @@ func NewMessage(h map[string]string, b []byte) Message {
 	return Message{h, b}
 }
 
-//Constants for message headers
+//MessageHandler func for handling messsages
+type MessageHandler = func(m Message)
+
+//Middleware for router message handling
+type Middleware = func(next MessageHandler) MessageHandler
+
+//Constants for EzBus message headers
 const (
 	MessageFullname = "EzBus.MessageFullname"
 	MessageName     = "EzBus.MessageName"

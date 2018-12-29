@@ -2,6 +2,7 @@ package ezbus
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"reflect"
@@ -27,7 +28,8 @@ func NewSendOnlyBus(b Broker) *Bus {
 	return &Bus{broker: b}
 }
 
-func (b *Bus) Start() {
+//Go starts the bus and listens to incoming messages.
+func (b *Bus) Go() {
 	err := b.broker.Start(b.forward)
 
 	if err != nil {
@@ -60,9 +62,15 @@ func (b *Bus) handle() {
 	for m := range b.forward {
 		n := m.Headers[MessageName]
 
-		retry(func() {
+		err := retry(func() {
 			b.router.handle(n, m)
 		}, 5)
+
+		if err != nil {
+			eq := fmt.Sprintf("%s.error", b.broker.QueueName())
+			log.Println("Failed to handle message. Putting on error queue: ", eq)
+			b.broker.Send(eq, m)
+		}
 	}
 }
 

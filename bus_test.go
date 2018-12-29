@@ -2,27 +2,25 @@ package ezbus
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/zapote/go-ezbus/assert"
 )
 
 var broker = FakeBroker{}
-var ep = "service.address"
-var msg = FakeMessage{ID: "12300-1"}
+var msg = FakeMessage{ID: "123-4"}
 var router = NewRouter()
-var bus = NewBus(&broker, router)
+var bus = NewBus(&broker, *router)
 
 func TestSendCorrectDestination(t *testing.T) {
-	bus.Send(ep, msg)
-
-	if broker.sentDest != ep {
-		t.Errorf("'%s' should be '%s'", broker.sentDest, ep)
-	}
+	bus.Send("queue.name", msg)
+	assert.IsEqual(t, broker.sentDst, "queue.name")
 }
 
 func TestSendCorrectMessageWithCorrectHeaders(t *testing.T) {
-	bus.Send(ep, msg)
+	bus.Send("queueName", msg)
 
 	m := broker.sentMessage.(Message)
 	mn := m.Headers[MessageName]
@@ -34,9 +32,7 @@ func TestSendCorrectMessageWithCorrectHeaders(t *testing.T) {
 	sent := FakeMessage{}
 	json.Unmarshal(m.Body, &sent)
 
-	if sent.ID != msg.ID {
-		t.Errorf("'%s' should be '%s'", sent.ID, msg.ID)
-	}
+	assert.IsEqual(t, msg.ID, msg.ID)
 }
 
 func TestReceive(t *testing.T) {
@@ -49,7 +45,7 @@ func TestReceive(t *testing.T) {
 		done <- struct{}{}
 	})
 
-	bus.Start()
+	bus.Go()
 	defer bus.Stop()
 	broker.invoke()
 
@@ -58,8 +54,8 @@ func TestReceive(t *testing.T) {
 	assert.IsTrue(t, handled, "Message should be handled")
 }
 
-func TestReceiveError(t *testing.T) {
-	done := make(chan struct{}, 5)
+func TestReceiveErrorShallRetryFiveTimes(t *testing.T) {
+	done := make(chan struct{})
 	defer close(done)
 	n := 0
 
@@ -67,15 +63,13 @@ func TestReceiveError(t *testing.T) {
 		n++
 
 		if n > 4 {
-			defer func() {
-				done <- struct{}{}
-			}()
+			done <- struct{}{}
 		}
 
 		panic("Error in message")
 	})
 
-	bus.Start()
+	bus.Go()
 	defer bus.Stop()
 	broker.invoke()
 
@@ -84,18 +78,40 @@ func TestReceiveError(t *testing.T) {
 	assert.IsEqual(t, n, 5)
 }
 
+func TestReceiveErrorShallSendToErrorQueue(t *testing.T) {
+	done := make(chan struct{})
+	defer close(done)
+	n := 0
+	router.Handle("FakeMessage", func(m Message) {
+		n++
+		if n > 4 {
+			done <- struct{}{}
+		}
+		panic("Error in message")
+	})
+
+	bus.Go()
+	defer bus.Stop()
+
+	broker.invoke()
+
+	<-done
+	time.Sleep(time.Millisecond * 10)
+	assert.IsEqual(t, broker.sentDst, fmt.Sprintf("%s.error", broker.QueueName()))
+}
+
 type FakeMessage struct {
 	ID string
 }
 
 type FakeBroker struct {
 	sentMessage interface{}
-	sentDest    string
+	sentDst     string
 	forward     chan Message
 }
 
 func (b *FakeBroker) Send(dst string, msg Message) error {
-	b.sentDest = dst
+	b.sentDst = dst
 	b.sentMessage = msg
 	return nil
 }
@@ -109,10 +125,17 @@ func (b *FakeBroker) Start(forward chan Message) error {
 	return nil
 }
 
+func (b *FakeBroker) QueueName() string {
+	return "fake.broker.queue"
+}
+
 func (b *FakeBroker) invoke() {
+	done := make(chan struct{})
 	go func() {
 		m := make(map[string]string)
 		m[MessageName] = "FakeMessage"
 		b.forward <- NewMessage(m, nil)
+		done <- struct{}{}
 	}()
+	<-done
 }

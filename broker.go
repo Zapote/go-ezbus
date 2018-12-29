@@ -20,4 +20,5 @@ type Publisher interface {
 //Receiver interface
 type Receiver interface {
 	Start(chan Message) error
+	QueueName() string
 }

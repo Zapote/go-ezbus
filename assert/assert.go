@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-// IsEqual checks if values are equal
+// IsEqual checks if values are equal. Received value (a) and expected value(b)
 func IsEqual(t *testing.T, a interface{}, b interface{}) {
 	if a == b {
 		return
 	}
-	t.Errorf("Received %v (type %v), expected %v (type %v)", a, reflect.TypeOf(a), b, reflect.TypeOf(b))
+	t.Errorf("Received '%v' (type %v), expected '%v' (type %v)", a, reflect.TypeOf(a), b, reflect.TypeOf(b))
 }
 
 // IsTrue checks if value is true
@@ -20,6 +20,13 @@ func IsTrue(t *testing.T, a bool, message string) {
 	}
 
 	t.Errorf(message)
+}
+
+// IsFalse checks if value is false
+func IsFalse(t *testing.T, a bool, message string) {
+	if a {
+		t.Errorf(message)
+	}
 }
 
 // IsNil checks if value is nil
