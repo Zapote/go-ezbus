@@ -11,10 +11,10 @@ import (
 
 // Bus for publish, send and receive messages
 type Bus struct {
-	broker  Broker
-	router  Router
-	done    chan (struct{})
-	forward chan (Message)
+	broker   Broker
+	router   Router
+	done     chan (struct{})
+	messages chan (Message)
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
@@ -30,14 +30,13 @@ func NewSendOnlyBus(b Broker) *Bus {
 
 //Go starts the bus and listens to incoming messages.
 func (b *Bus) Go() {
-	err := b.broker.Start(b.forward)
+	go b.handle()
+
+	err := b.broker.Start(b.messages)
 
 	if err != nil {
-		log.Panicf("Failed to start broker")
-		panic(err)
+		log.Panicln("Failed to start broker: ", err)
 	}
-
-	go b.handle()
 }
 
 func (b *Bus) Stop() {
@@ -59,7 +58,10 @@ func (b *Bus) Send(dst string, msg interface{}) error {
 }
 
 func (b *Bus) handle() {
-	for m := range b.forward {
+
+	log.Println("starting handle")
+
+	for m := range b.messages {
 		n := m.Headers[MessageName]
 
 		err := retry(func() {
@@ -72,6 +74,8 @@ func (b *Bus) handle() {
 			b.broker.Send(eq, m)
 		}
 	}
+
+	log.Println("no more handle")
 }
 
 func recoverHandle(m Message) {
