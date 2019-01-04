@@ -31,7 +31,7 @@ func NewSendOnlyBus(b Broker) *Bus {
 //Go starts the bus and listens to incoming messages.
 func (b *Bus) Go() {
 	go b.handle()
-
+	log.Println("Bus is on the Go!")
 	err := b.broker.Start(b.messages)
 
 	if err != nil {
@@ -39,10 +39,10 @@ func (b *Bus) Go() {
 	}
 }
 
+//Stop the bus and any incoming messages
 func (b *Bus) Stop() {
-	go func() {
-		b.done <- struct{}{}
-	}()
+	defer log.Println("Bus stopped.")
+	b.broker.Stop()
 }
 
 // Send message to destination
@@ -54,13 +54,10 @@ func (b *Bus) Send(dst string, msg interface{}) error {
 
 	t := reflect.TypeOf(msg)
 
-	return b.broker.Send(dst, NewMessage(getHeaders(t), json))
+	return b.broker.Send(dst, NewMessage(getHeaders(t, dst), json))
 }
 
 func (b *Bus) handle() {
-
-	log.Println("starting handle")
-
 	for m := range b.messages {
 		n := m.Headers[MessageName]
 
@@ -74,8 +71,6 @@ func (b *Bus) handle() {
 			b.broker.Send(eq, m)
 		}
 	}
-
-	log.Println("no more handle")
 }
 
 func recoverHandle(m Message) {
@@ -84,12 +79,12 @@ func recoverHandle(m Message) {
 	}
 }
 
-func getHeaders(msgType reflect.Type) map[string]string {
+func getHeaders(msgType reflect.Type, dst string) map[string]string {
 	h := make(map[string]string)
 	h[MessageName] = msgType.Name()
 	h[MessageFullname] = msgType.String()
 	h[TimeSent] = time.Now().Format("2006-01-02 15:04:05.000000")
-
+	h[Destination] = dst
 	hostName, err := os.Hostname()
 	if err == nil {
 		h[SendingHost] = hostName

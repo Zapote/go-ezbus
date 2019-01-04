@@ -19,20 +19,25 @@ func TestSendCorrectDestination(t *testing.T) {
 	assert.IsEqual(t, broker.sentDst, "queue.name")
 }
 
-func TestSendCorrectMessageWithCorrectHeaders(t *testing.T) {
+func TestSendHasCorrectMessageBody(t *testing.T) {
 	bus.Send("queueName", msg)
 
 	m := broker.sentMessage.(Message)
-	mn := m.Headers[MessageName]
-
-	if mn != "FakeMessage" {
-		t.Errorf("'%s' should be '%s'", mn, "FakeMessage")
-	}
 
 	sent := FakeMessage{}
 	json.Unmarshal(m.Body, &sent)
 
 	assert.IsEqual(t, msg.ID, msg.ID)
+}
+
+func TestSendHasCorrectHeaders(t *testing.T) {
+	bus.Send("queueName", msg)
+
+	m := broker.sentMessage.(Message)
+
+	assert.IsEqual(t, m.Headers[MessageName], "FakeMessage")
+	assert.IsEqual(t, m.Headers[MessageFullname], "ezbus.FakeMessage")
+	assert.IsEqual(t, m.Headers[Destination], "queueName")
 }
 
 func TestReceive(t *testing.T) {
@@ -107,7 +112,7 @@ type FakeMessage struct {
 type FakeBroker struct {
 	sentMessage interface{}
 	sentDst     string
-	forward     chan Message
+	messages    chan<- Message
 }
 
 func (b *FakeBroker) Send(dst string, msg Message) error {
@@ -120,8 +125,12 @@ func (b *FakeBroker) Publish(msg Message) error {
 	return nil
 }
 
-func (b *FakeBroker) Start(forward chan Message) error {
-	b.forward = forward
+func (b *FakeBroker) Start(messages chan<- Message) error {
+	b.messages = messages
+	return nil
+}
+
+func (b *FakeBroker) Stop() error {
 	return nil
 }
 
@@ -134,7 +143,7 @@ func (b *FakeBroker) invoke() {
 	go func() {
 		m := make(map[string]string)
 		m[MessageName] = "FakeMessage"
-		b.forward <- NewMessage(m, nil)
+		b.messages <- NewMessage(m, nil)
 		done <- struct{}{}
 	}()
 	<-done

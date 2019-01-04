@@ -15,7 +15,13 @@ func main() {
 	}
 	bus := ezbus.NewSendOnlyBus(broker)
 
-	bus.Send("rabbitmq.example.receiver", PlaceOrder{"1337"})
+	for i := 0; i < 1000; i++ {
+		err := bus.Send("rabbitmq.example.receiver", PlaceOrder{"1337"})
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 }
 
 type PlaceOrder struct {

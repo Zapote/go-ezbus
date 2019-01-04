@@ -19,6 +19,7 @@ type Publisher interface {
 
 //Receiver interface
 type Receiver interface {
-	Start(chan Message) error
+	Start(chan<- Message) error
+	Stop() error
 	QueueName() string
 }
