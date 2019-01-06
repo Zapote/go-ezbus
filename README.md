@@ -1,6 +1,22 @@
 # go-ezbus
-Message bus for go
+This is a package for communication between services in a distrubuted architecture.
+RabbitMQ as transport
 
+
+pub/sub pattern
+```code
+                                       subscriber a
+                                      /
+                                     /
+                                    /
+command ----> publisher -- event --> subscriber b
+                                    \
+                                     \
+                                      \
+                                       subscriber c 
+```
+
+# code example
 ```go
 r := ezbus.NewRouter()
 r.Handle("placeOrder", func(message) {
@@ -9,7 +25,5 @@ r.Handle("placeOrder", func(message) {
 
 b := ezbus.rabbitmq.NewBroker("my.queue");
 bus := ezbus.NewBus(r,b)
-
-
 
 ```
