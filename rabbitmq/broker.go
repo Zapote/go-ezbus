@@ -13,27 +13,17 @@ type Broker struct {
 	conn      *amqp.Connection
 	channel   *amqp.Channel
 	done      chan (struct{})
+	cfg       config
 }
 
 //NewBroker creates a RabbitMQ broker instance
-func NewBroker(queueName string) (*Broker, error) {
+//Default url amqp://guest:guest@localhost:5672
+//Default prefetchCount 100
+func NewBroker(queueName string) *Broker {
 	b := Broker{queueName: queueName}
 	b.done = make(chan struct{})
-
-	cn, err := amqp.Dial("amqp://guest:guest@localhost:5672/ezbus")
-
-	if err != nil {
-		return nil, fmt.Errorf("Dial: %s", err)
-	}
-
-	b.conn = cn
-	b.channel, err = b.conn.Channel()
-
-	if err != nil {
-		return nil, fmt.Errorf("Channel: %s", err)
-	}
-
-	return &b, err
+	b.cfg = config{"amqp://guest:guest@localhost:5672", 100}
+	return &b
 }
 
 func (b *Broker) Send(dst string, m ezbus.Message) error {
@@ -45,6 +35,25 @@ func (b *Broker) Publish(m ezbus.Message) error {
 }
 
 func (b *Broker) Start(messages chan<- ezbus.Message) error {
+	cn, err := amqp.Dial(b.cfg.url)
+
+	if err != nil {
+		return fmt.Errorf("Dial: %s", err)
+	}
+
+	b.conn = cn
+	b.channel, err = b.conn.Channel()
+
+	if err != nil {
+		return fmt.Errorf("Channel: %s", err)
+	}
+
+	err = b.channel.Qos(b.cfg.prefetchCount, 0, false)
+
+	if err != nil {
+		return fmt.Errorf("Qos: %s", err)
+	}
+
 	queue, err := queueDeclare(b.channel, b.queueName)
 
 	if err != nil {
@@ -64,6 +73,7 @@ func (b *Broker) Start(messages chan<- ezbus.Message) error {
 			headers := extractHeaders(d.Headers)
 			m := ezbus.Message{Headers: headers, Body: d.Body}
 			messages <- m
+			b.channel.Ack(d.DeliveryTag, false)
 		}
 	}()
 
@@ -86,6 +96,14 @@ func (b *Broker) Stop() error {
 
 func (b *Broker) QueueName() string {
 	return b.queueName
+}
+
+//Configures RabbitMQ.
+//url to broker
+//prefetchCount
+func (b *Broker) Configure(url string, prefetchCount int) {
+	b.cfg.url = url
+	b.cfg.prefetchCount = prefetchCount
 }
 
 func extractHeaders(h amqp.Table) map[string]string {

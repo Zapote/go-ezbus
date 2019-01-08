@@ -25,5 +25,5 @@ func publish(c *amqp.Channel, m ezbus.Message, dst string, exchange string) erro
 }
 
 func consume(c *amqp.Channel, queueName string) (<-chan amqp.Delivery, error) {
-	return c.Consume(queueName, "", true, false, false, false, nil)
+	return c.Consume(queueName, "", false, false, false, false, nil)
 }
