@@ -8,12 +8,8 @@ import (
 )
 
 func main() {
-
-	broker, err := rabbitmq.NewBroker("")
-	if err != nil {
-		log.Fatalf("NewBroker: %s", err)
-	}
-	bus := ezbus.NewSendOnlyBus(broker)
+	b := rabbitmq.NewBroker("")
+	bus := ezbus.NewSendOnlyBus(b)
 
 	for i := 0; i < 1000; i++ {
 		err := bus.Send("rabbitmq.example.receiver", PlaceOrder{"1337"})

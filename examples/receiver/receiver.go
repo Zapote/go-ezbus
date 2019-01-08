@@ -10,17 +10,8 @@ import (
 	"github.com/zapote/go-ezbus/rabbitmq"
 )
 
-type PlaceOrder struct {
-	ID string
-}
-
 func main() {
-	b, err := rabbitmq.NewBroker("rabbitmq.example.receiver")
-
-	if err != nil {
-		log.Fatal("Failed to create RabbitMQ broker: ", err)
-	}
-
+	b := rabbitmq.NewBroker("rabbitmq.example.receiver")
 	r := ezbus.NewRouter()
 
 	r.Middleware(func(next func(m ezbus.Message)) func(m ezbus.Message) {
@@ -43,4 +34,8 @@ func main() {
 	go bus.Go()
 	defer bus.Stop()
 	time.Sleep(time.Second * 5)
+}
+
+type PlaceOrder struct {
+	ID string
 }
