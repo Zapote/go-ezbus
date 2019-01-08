@@ -25,7 +25,9 @@ func NewBus(b Broker, r Router) *Bus {
 
 // NewSendOnlyBus creates a bus instance for sending messages.
 func NewSendOnlyBus(b Broker) *Bus {
-	return &Bus{broker: b}
+	bus := Bus{broker: b}
+	bus.broker.Start(bus.messages)
+	return &bus
 }
 
 //Go starts the bus and listens to incoming messages.

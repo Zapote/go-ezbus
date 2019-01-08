@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	n := 0
 	b := rabbitmq.NewBroker("rabbitmq.example.receiver")
 	r := ezbus.NewRouter()
 
@@ -25,15 +26,13 @@ func main() {
 	r.Handle("PlaceOrder", func(m ezbus.Message) {
 		var po PlaceOrder
 		json.Unmarshal(m.Body, &po)
-
-		log.Println(po)
+		n++
+		log.Println(fmt.Sprintf(" %d OrderPlaced messages handled", n))
 	})
 
 	bus := ezbus.NewBus(b, *r)
 
-	go bus.Go()
-	defer bus.Stop()
-	time.Sleep(time.Second * 5)
+	bus.Go()
 }
 
 type PlaceOrder struct {

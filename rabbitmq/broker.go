@@ -48,6 +48,10 @@ func (b *Broker) Start(messages chan<- ezbus.Message) error {
 		return fmt.Errorf("Channel: %s", err)
 	}
 
+	if b.QueueName() == "" {
+		return nil
+	}
+
 	err = b.channel.Qos(b.cfg.prefetchCount, 0, false)
 
 	if err != nil {

@@ -17,7 +17,6 @@ func main() {
 			log.Println(err)
 		}
 	}
-
 }
 
 type PlaceOrder struct {
