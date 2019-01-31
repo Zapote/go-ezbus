@@ -48,7 +48,7 @@ func (b *Broker) Start(messages chan<- ezbus.Message) error {
 		return fmt.Errorf("Channel: %s", err)
 	}
 
-	if b.QueueName() == "" {
+	if b.Endpoint() == "" {
 		return nil
 	}
 
@@ -98,8 +98,19 @@ func (b *Broker) Stop() error {
 	return nil
 }
 
-func (b *Broker) QueueName() string {
+//Endpoint returns name of the queue
+func (b *Broker) Endpoint() string {
 	return b.queueName
+}
+
+func (b *Broker) Subscribe(endpoint string, messageName string) error {
+	//endpoint = endpoint.ToLower();
+	log.Println(fmt.Sprintf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint))
+	//var channel = channelFactory.GetChannel();
+	//var queue = busConfig.EndpointName.ToLower();
+	//channel.QueueBind(queue, endpoint, string.Empty);
+
+	return nil
 }
 
 //Configures RabbitMQ.

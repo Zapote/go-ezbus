@@ -12,6 +12,13 @@ func NewMessage(h map[string]string, b []byte) Message {
 	return Message{h, b}
 }
 
+type subscription struct {
+	endpoint    string
+	messageName string
+}
+
+type subscriptions []subscription
+
 //MessageHandler func for handling messsages
 type MessageHandler = func(m Message)
 

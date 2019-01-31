@@ -5,6 +5,7 @@ type Broker interface {
 	Sender
 	Publisher
 	Receiver
+	Subscriber
 }
 
 // Sender interface
@@ -21,5 +22,9 @@ type Publisher interface {
 type Receiver interface {
 	Start(chan<- Message) error
 	Stop() error
-	QueueName() string
+	Endpoint() string
+}
+
+type Subscriber interface {
+	Subscribe(endpoint string, messageName string) error
 }

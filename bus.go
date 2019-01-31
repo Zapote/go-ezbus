@@ -9,17 +9,24 @@ import (
 	"time"
 )
 
-// Bus for publish, send and receive messages
+// Bus for publishing, sending and receiving messages
 type Bus struct {
-	broker   Broker
-	router   Router
-	done     chan (struct{})
-	messages chan (Message)
+	broker      Broker
+	router      Router
+	done        chan (struct{})
+	messages    chan (Message)
+	subscribers []*subscription
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
 func NewBus(b Broker, r Router) *Bus {
-	bus := Bus{b, r, make(chan struct{}), make(chan Message)}
+	bus := Bus{
+		b,
+		r,
+		make(chan struct{}),
+		make(chan Message),
+		make([]*subscription, 0)}
+
 	return &bus
 }
 
@@ -35,19 +42,20 @@ func (b *Bus) Go() {
 	go b.handle()
 	log.Println("Bus is on the Go!")
 	err := b.broker.Start(b.messages)
+	log.Println("Bus is on the God!")
 
 	if err != nil {
 		log.Panicln("Failed to start broker: ", err)
 	}
 }
 
-//Stop the bus and any incoming messages
+//Stop the bus and any incoming messages.
 func (b *Bus) Stop() {
 	defer log.Println("Bus stopped.")
 	b.broker.Stop()
 }
 
-// Send message to destination
+// Send message to destination.
 func (b *Bus) Send(dst string, msg interface{}) error {
 	json, err := json.Marshal(msg)
 	if err != nil {
@@ -59,6 +67,11 @@ func (b *Bus) Send(dst string, msg interface{}) error {
 	return b.broker.Send(dst, NewMessage(getHeaders(t, dst), json))
 }
 
+//Subscribe to a publisher. Provide endpoint (queue) and name of the message to subscribe to.
+func (b *Bus) Subscribe(endpoint string, messageName string) {
+	b.subscribers = append(b.subscribers, &subscription{endpoint, messageName})
+}
+
 func (b *Bus) handle() {
 	for m := range b.messages {
 		n := m.Headers[MessageName]
@@ -68,7 +81,7 @@ func (b *Bus) handle() {
 		}, 5)
 
 		if err != nil {
-			eq := fmt.Sprintf("%s.error", b.broker.QueueName())
+			eq := fmt.Sprintf("%s.error", b.broker.Endpoint())
 			log.Println("Failed to handle message. Putting on error queue: ", eq)
 			b.broker.Send(eq, m)
 		}

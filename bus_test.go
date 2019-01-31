@@ -102,7 +102,7 @@ func TestReceiveErrorShallSendToErrorQueue(t *testing.T) {
 
 	<-done
 	time.Sleep(time.Millisecond * 10)
-	assert.IsEqual(t, broker.sentDst, fmt.Sprintf("%s.error", broker.QueueName()))
+	assert.IsEqual(t, broker.sentDst, fmt.Sprintf("%s.error", broker.Endpoint()))
 }
 
 type FakeMessage struct {
@@ -134,7 +134,11 @@ func (b *FakeBroker) Stop() error {
 	return nil
 }
 
-func (b *FakeBroker) QueueName() string {
+func (b *FakeBroker) Subscribe(queueName string, messageName string) error {
+	return nil
+}
+
+func (b *FakeBroker) Endpoint() string {
 	return "fake.broker.queue"
 }
 
