@@ -12,7 +12,6 @@ type Broker struct {
 	queueName string
 	conn      *amqp.Connection
 	channel   *amqp.Channel
-	done      chan (struct{})
 	cfg       config
 }
 
@@ -21,17 +20,24 @@ type Broker struct {
 //Default prefetchCount 100
 func NewBroker(queueName string) *Broker {
 	b := Broker{queueName: queueName}
-	b.done = make(chan struct{})
 	b.cfg = config{"amqp://guest:guest@localhost:5672", 100}
 	return &b
 }
 
 func (b *Broker) Send(dst string, m ezbus.Message) error {
-	return publish(b.channel, m, dst, "")
+	err := publish(b.channel, m, dst, "")
+	if err != nil {
+		return fmt.Errorf("Send: %s", err)
+	}
+	return err
 }
 
 func (b *Broker) Publish(m ezbus.Message) error {
-	return nil
+	err := publish(b.channel, m, "", m.Headers[ezbus.MessageName])
+	if err != nil {
+		return fmt.Errorf("Publish: %s", err)
+	}
+	return err
 }
 
 func (b *Broker) Start(messages chan<- ezbus.Message) error {
@@ -66,6 +72,14 @@ func (b *Broker) Start(messages chan<- ezbus.Message) error {
 
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
+	err = exchangeDeclare(b.channel, b.queueName)
+
+	if err != nil {
+		return fmt.Errorf("Exchange Declare: %s", err)
+	}
+
+	log.Printf("Exchange declared.")
+
 	msgs, err := consume(b.channel, queue.Name)
 
 	if err != nil {
@@ -81,7 +95,6 @@ func (b *Broker) Start(messages chan<- ezbus.Message) error {
 		}
 	}()
 
-	<-b.done
 	return nil
 }
 
@@ -94,7 +107,7 @@ func (b *Broker) Stop() error {
 	if err != nil {
 		return fmt.Errorf("Connection Close: %s", err)
 	}
-	b.done <- struct{}{}
+
 	return nil
 }
 
@@ -104,13 +117,8 @@ func (b *Broker) Endpoint() string {
 }
 
 func (b *Broker) Subscribe(endpoint string, messageName string) error {
-	//endpoint = endpoint.ToLower();
 	log.Println(fmt.Sprintf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint))
-	//var channel = channelFactory.GetChannel();
-	//var queue = busConfig.EndpointName.ToLower();
-	//channel.QueueBind(queue, endpoint, string.Empty);
-
-	return nil
+	return queueBind(b.channel, b.Endpoint(), messageName, endpoint)
 }
 
 //Configures RabbitMQ.

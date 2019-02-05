@@ -31,22 +31,24 @@ func NewBus(b Broker, r Router) *Bus {
 }
 
 // NewSendOnlyBus creates a bus instance for sending messages.
-func NewSendOnlyBus(b Broker) *Bus {
+func NewSendOnlyBus(b Broker) (*Bus, error) {
 	bus := Bus{broker: b}
-	bus.broker.Start(bus.messages)
-	return &bus
+	err := bus.broker.Start(bus.messages)
+	return &bus, err
 }
 
 //Go starts the bus and listens to incoming messages.
 func (b *Bus) Go() {
 	go b.handle()
-	log.Println("Bus is on the Go!")
-	err := b.broker.Start(b.messages)
-	log.Println("Bus is on the God!")
+	go b.startBroker()
 
-	if err != nil {
-		log.Panicln("Failed to start broker: ", err)
+	log.Println("Bus is on the Go!")
+
+	for _, s := range b.subscribers {
+		b.broker.Subscribe(s.endpoint, s.messageName)
 	}
+
+	<-b.done
 }
 
 //Stop the bus and any incoming messages.
@@ -65,6 +67,18 @@ func (b *Bus) Send(dst string, msg interface{}) error {
 	t := reflect.TypeOf(msg)
 
 	return b.broker.Send(dst, NewMessage(getHeaders(t, dst), json))
+}
+
+//Publish message to subscribers
+func (b *Bus) Publish(msg interface{}) error {
+	json, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	t := reflect.TypeOf(msg)
+
+	return b.broker.Publish(NewMessage(getHeaders(t, ""), json))
 }
 
 //Subscribe to a publisher. Provide endpoint (queue) and name of the message to subscribe to.
@@ -88,6 +102,14 @@ func (b *Bus) handle() {
 	}
 }
 
+func (b *Bus) startBroker() {
+	err := b.broker.Start(b.messages)
+
+	if err != nil {
+		log.Panicln("Failed to start broker: ", err)
+	}
+}
+
 func recoverHandle(m Message) {
 	if err := recover(); err != nil {
 		log.Printf("Failed to handle '%s': %s", m.Headers[MessageName], err)
@@ -99,7 +121,11 @@ func getHeaders(msgType reflect.Type, dst string) map[string]string {
 	h[MessageName] = msgType.Name()
 	h[MessageFullname] = msgType.String()
 	h[TimeSent] = time.Now().Format("2006-01-02 15:04:05.000000")
-	h[Destination] = dst
+
+	if dst != "" {
+		h[Destination] = dst
+	}
+
 	hostName, err := os.Hostname()
 	if err == nil {
 		h[SendingHost] = hostName

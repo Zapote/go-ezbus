@@ -1,6 +1,8 @@
 package rabbitmq
 
 import (
+	"fmt"
+
 	"github.com/streadway/amqp"
 	ezbus "github.com/zapote/go-ezbus"
 )
@@ -10,6 +12,10 @@ func queueDeclare(c *amqp.Channel, name string) (amqp.Queue, error) {
 }
 
 func publish(c *amqp.Channel, m ezbus.Message, dst string, exchange string) error {
+	if c == nil {
+		return fmt.Errorf("Channel is nil.")
+	}
+
 	headers := make(amqp.Table)
 
 	for key, value := range m.Headers {
@@ -22,6 +28,14 @@ func publish(c *amqp.Channel, m ezbus.Message, dst string, exchange string) erro
 			Headers:     headers,
 			Body:        m.Body,
 		})
+}
+
+func queueBind(c *amqp.Channel, queueName string, messageName string, exchange string) error {
+	return c.QueueBind(queueName, messageName, exchange, false, nil)
+}
+
+func exchangeDeclare(c *amqp.Channel, name string) error {
+	return c.ExchangeDeclare(name, amqp.ExchangeFanout, true, false, false, false, nil)
 }
 
 func consume(c *amqp.Channel, queueName string) (<-chan amqp.Delivery, error) {
