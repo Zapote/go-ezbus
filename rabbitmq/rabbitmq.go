@@ -5,8 +5,12 @@ import (
 	ezbus "github.com/zapote/go-ezbus"
 )
 
-func queueDeclare(c *amqp.Channel, name string) (amqp.Queue, error) {
+func declareQueue(c *amqp.Channel, name string) (amqp.Queue, error) {
 	return c.QueueDeclare(name, true, false, false, false, nil)
+}
+
+func declareExchange(c *amqp.Channel, name string) error {
+	return c.ExchangeDeclare(name, amqp.ExchangeFanout, true, false, false, false, nil)
 }
 
 func publish(c *amqp.Channel, m ezbus.Message, dst string, exchange string) error {

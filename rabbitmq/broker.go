@@ -58,13 +58,21 @@ func (b *Broker) Start(messages chan<- ezbus.Message) error {
 		return fmt.Errorf("Qos: %s", err)
 	}
 
-	queue, err := queueDeclare(b.channel, b.queueName)
+	queue, err := declareQueue(b.channel, b.queueName)
 
 	if err != nil {
-		return fmt.Errorf("Queue Declare: %s", err)
+		return fmt.Errorf("Declare Queue : %s", err)
 	}
 
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
+
+	err = declareExchange(b.channel, b.queueName)
+
+	if err != nil {
+		return fmt.Errorf("Declare Exchange : %s", err)
+	}
+
+	log.Printf("Exchange declared.")
 
 	msgs, err := consume(b.channel, queue.Name)
 
