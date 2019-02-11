@@ -9,7 +9,11 @@ import (
 
 func main() {
 	b := rabbitmq.NewBroker("")
-	bus := ezbus.NewSendOnlyBus(b)
+	bus, err := ezbus.NewSendOnlyBus(b)
+
+	if err != nil {
+		log.Panicf("Failed to create bus: %s", err)
+	}
 
 	for i := 0; i < 1000; i++ {
 		err := bus.Send("rabbitmq.example.receiver", PlaceOrder{"1337"})
