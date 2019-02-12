@@ -25,6 +25,7 @@ type Receiver interface {
 	Endpoint() string
 }
 
+//Subscriber interface
 type Subscriber interface {
 	Subscribe(endpoint string, messageName string) error
 }

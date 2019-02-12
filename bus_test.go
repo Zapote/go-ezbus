@@ -50,12 +50,11 @@ func TestReceive(t *testing.T) {
 		done <- struct{}{}
 	})
 
-	bus.Go()
+	go bus.Go()
 	defer bus.Stop()
 	broker.invoke()
 
 	<-done
-
 	assert.IsTrue(t, handled, "Message should be handled")
 }
 
@@ -74,7 +73,7 @@ func TestReceiveErrorShallRetryFiveTimes(t *testing.T) {
 		panic("Error in message")
 	})
 
-	bus.Go()
+	go bus.Go()
 	defer bus.Stop()
 	broker.invoke()
 
@@ -95,7 +94,7 @@ func TestReceiveErrorShallSendToErrorQueue(t *testing.T) {
 		panic("Error in message")
 	})
 
-	bus.Go()
+	go bus.Go()
 	defer bus.Stop()
 
 	broker.invoke()
@@ -143,12 +142,8 @@ func (b *FakeBroker) Endpoint() string {
 }
 
 func (b *FakeBroker) invoke() {
-	done := make(chan struct{})
-	go func() {
-		m := make(map[string]string)
-		m[MessageName] = "FakeMessage"
-		b.messages <- NewMessage(m, nil)
-		done <- struct{}{}
-	}()
-	<-done
+	m := make(map[string]string)
+	m[MessageName] = "FakeMessage"
+	time.Sleep(time.Microsecond * 100)
+	b.messages <- NewMessage(m, nil)
 }
