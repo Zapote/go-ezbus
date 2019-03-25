@@ -8,6 +8,7 @@ import (
 	ezbus "github.com/zapote/go-ezbus"
 )
 
+//Broker RabbitMQ implementation of ezbus.broker interaface.
 type Broker struct {
 	queueName string
 	conn      *amqp.Connection
@@ -116,12 +117,13 @@ func (b *Broker) Endpoint() string {
 	return b.queueName
 }
 
+//Subscribe to messages from specific endpoint
 func (b *Broker) Subscribe(endpoint string, messageName string) error {
 	log.Println(fmt.Sprintf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint))
 	return queueBind(b.channel, b.Endpoint(), messageName, endpoint)
 }
 
-//Configures RabbitMQ.
+//Configure RabbitMQ.
 //url to broker
 //prefetchCount
 func (b *Broker) Configure(url string, prefetchCount int) {

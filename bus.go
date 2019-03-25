@@ -15,7 +15,7 @@ type Bus struct {
 	router      Router
 	done        chan (struct{})
 	messages    chan (Message)
-	subscribers []*subscription
+	subscribers []subscription
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
@@ -25,7 +25,7 @@ func NewBus(b Broker, r Router) *Bus {
 		r,
 		make(chan struct{}),
 		make(chan Message),
-		make([]*subscription, 0)}
+		make([]subscription, 0)}
 
 	return &bus
 }
@@ -83,7 +83,7 @@ func (b *Bus) Publish(msg interface{}) error {
 
 //Subscribe to a publisher. Provide endpoint (queue) and name of the message to subscribe to.
 func (b *Bus) Subscribe(endpoint string, messageName string) {
-	b.subscribers = append(b.subscribers, &subscription{endpoint, messageName})
+	b.subscribers = append(b.subscribers, subscription{endpoint, messageName})
 }
 
 func (b *Bus) handle() {
