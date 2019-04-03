@@ -15,6 +15,9 @@ type OrderPlaced struct {
 func main() {
 	b := rabbitmq.NewBroker("rabbitmq.example.subscriber")
 	r := ezbus.NewRouter()
+	r.Handle("OrderPlaced", func(m ezbus.Message) {
+		log.Println("Orderplaced")
+	})
 
 	r.Handle("OrderPlaced", func(m ezbus.Message) {
 		var po OrderPlaced

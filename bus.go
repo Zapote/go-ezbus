@@ -21,16 +21,18 @@ type Bus struct {
 	broker      Broker
 	router      Router
 	done        chan (struct{})
-	subscribers subscriptions
+	messages    chan (Message)
+	subscribers []subscription
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
 func NewBus(b Broker, r Router) *Bus {
 	bus := Bus{
-		broker:      b,
-		router:      r,
-		done:        make(chan struct{}),
-		subscribers: make([]subscription, 0)}
+		b,
+		r,
+		make(chan struct{}),
+		make(chan Message),
+		make([]subscription, 0)}
 
 	return &bus
 }

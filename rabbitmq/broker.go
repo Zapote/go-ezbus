@@ -8,6 +8,7 @@ import (
 	ezbus "github.com/zapote/go-ezbus"
 )
 
+//Broker RabbitMQ implementation of ezbus.broker interaface.
 type Broker struct {
 	queueName string
 	conn      *amqp.Connection
@@ -68,18 +69,18 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 		return fmt.Errorf("Qos: %s", err)
 	}
 
-	queue, err := queueDeclare(b.channel, b.queueName)
+	queue, err := declareQueue(b.channel, b.queueName)
 
 	if err != nil {
-		return fmt.Errorf("Queue Declare: %s", err)
+		return fmt.Errorf("Declare Queue : %s", err)
 	}
 
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
-	err = exchangeDeclare(b.channel, b.queueName)
+	err = declareExchange(b.channel, b.queueName)
 
 	if err != nil {
-		return fmt.Errorf("Exchange Declare: %s", err)
+		return fmt.Errorf("Declare Exchange : %s", err)
 	}
 
 	log.Printf("Exchange declared. (%q)", b.queueName)
@@ -122,12 +123,13 @@ func (b *Broker) Endpoint() string {
 	return b.queueName
 }
 
+//Subscribe to messages from specific endpoint
 func (b *Broker) Subscribe(endpoint string, messageName string) error {
 	log.Printf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint)
 	return queueBind(b.channel, b.Endpoint(), messageName, endpoint)
 }
 
-//Configures RabbitMQ.
+//Configure RabbitMQ.
 //url to broker
 //prefetchCount
 func (b *Broker) Configure(url string, prefetchCount int) {

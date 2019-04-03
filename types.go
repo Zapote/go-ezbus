@@ -1,6 +1,6 @@
 package ezbus
 
-// EzBus Message
+//Message in EzBus
 type Message struct {
 	Headers map[string]string
 	Body    []byte
