@@ -9,23 +9,28 @@ import (
 	"time"
 )
 
+type subscription struct {
+	endpoint    string
+	messageName string
+}
+
+type subscriptions []subscription
+
 // Bus for publishing, sending and receiving messages
 type Bus struct {
 	broker      Broker
 	router      Router
 	done        chan (struct{})
-	messages    chan (Message)
-	subscribers []*subscription
+	subscribers subscriptions
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
 func NewBus(b Broker, r Router) *Bus {
 	bus := Bus{
-		b,
-		r,
-		make(chan struct{}),
-		make(chan Message),
-		make([]*subscription, 0)}
+		broker:      b,
+		router:      r,
+		done:        make(chan struct{}),
+		subscribers: make([]subscription, 0)}
 
 	return &bus
 }
@@ -33,22 +38,19 @@ func NewBus(b Broker, r Router) *Bus {
 // NewSendOnlyBus creates a bus instance for sending messages.
 func NewSendOnlyBus(b Broker) (*Bus, error) {
 	bus := Bus{broker: b}
-	err := bus.broker.Start(bus.messages)
+	err := bus.broker.Start(bus.handle)
 	return &bus, err
 }
 
 //Go starts the bus and listens to incoming messages.
 func (b *Bus) Go() {
-	go b.handle()
-	go b.startBroker()
-
-	log.Println("Bus is on the Go!")
-
+	b.startBroker()
 	for _, s := range b.subscribers {
 		b.broker.Subscribe(s.endpoint, s.messageName)
 	}
-
+	log.Println("Bus is on the Go!")
 	<-b.done
+	log.Println("Bus is parked!")
 }
 
 //Stop the bus and any incoming messages.
@@ -82,28 +84,30 @@ func (b *Bus) Publish(msg interface{}) error {
 }
 
 //Subscribe to a publisher. Provide endpoint (queue) and name of the message to subscribe to.
-func (b *Bus) Subscribe(endpoint string, messageName string) {
-	b.subscribers = append(b.subscribers, &subscription{endpoint, messageName})
+func (b *Bus) SubscribeMessage(endpoint string, messageName string) {
+	b.subscribers = append(b.subscribers, subscription{endpoint, messageName})
 }
 
-func (b *Bus) handle() {
-	for m := range b.messages {
-		n := m.Headers[MessageName]
+//Subscribe to a publisher. Provide endpoint (queue) and name of the message to subscribe to.
+func (b *Bus) Subscribe(endpoint string) {
+	b.subscribers = append(b.subscribers, subscription{endpoint, ""})
+}
 
-		err := retry(func() {
-			b.router.handle(n, m)
-		}, 5)
+func (b *Bus) handle(m Message) {
+	n := m.Headers[MessageName]
+	err := retry(func() {
+		b.router.handle(n, m)
+	}, 5)
 
-		if err != nil {
-			eq := fmt.Sprintf("%s.error", b.broker.Endpoint())
-			log.Println("Failed to handle message. Putting on error queue: ", eq)
-			b.broker.Send(eq, m)
-		}
+	if err != nil {
+		eq := fmt.Sprintf("%s.error", b.broker.Endpoint())
+		log.Println("Failed to handle message. Putting on error queue: ", eq)
+		b.broker.Send(eq, m)
 	}
 }
 
 func (b *Bus) startBroker() {
-	err := b.broker.Start(b.messages)
+	err := b.broker.Start(b.handle)
 
 	if err != nil {
 		log.Panicln("Failed to start broker: ", err)

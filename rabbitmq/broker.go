@@ -13,14 +13,17 @@ type Broker struct {
 	conn      *amqp.Connection
 	channel   *amqp.Channel
 	cfg       config
+	done      chan (struct{})
 }
 
 //NewBroker creates a RabbitMQ broker instance
 //Default url amqp://guest:guest@localhost:5672
 //Default prefetchCount 100
 func NewBroker(queueName string) *Broker {
-	b := Broker{queueName: queueName}
-	b.cfg = config{"amqp://guest:guest@localhost:5672", 100}
+	b := Broker{queueName: queueName, done: make(chan (struct{}))}
+	b.cfg = config{
+		url:           "amqp://guest:guest@localhost:5672",
+		prefetchCount: 1}
 	return &b
 }
 
@@ -33,14 +36,15 @@ func (b *Broker) Send(dst string, m ezbus.Message) error {
 }
 
 func (b *Broker) Publish(m ezbus.Message) error {
-	err := publish(b.channel, m, "", m.Headers[ezbus.MessageName])
+	msgName := m.Headers[ezbus.MessageName]
+	err := publish(b.channel, m, "", msgName)
 	if err != nil {
 		return fmt.Errorf("Publish: %s", err)
 	}
 	return err
 }
 
-func (b *Broker) Start(messages chan<- ezbus.Message) error {
+func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	cn, err := amqp.Dial(b.cfg.url)
 
 	if err != nil {
@@ -78,27 +82,29 @@ func (b *Broker) Start(messages chan<- ezbus.Message) error {
 		return fmt.Errorf("Exchange Declare: %s", err)
 	}
 
-	log.Printf("Exchange declared.")
+	log.Printf("Exchange declared. (%q)", b.queueName)
 
-	msgs, err := consume(b.channel, queue.Name)
+	msgs, err := b.channel.Consume(queue.Name, "", false, false, false, false, nil)
 
 	if err != nil {
 		return fmt.Errorf("Queue Consume: %s", err)
 	}
 
-	go func() {
-		for d := range msgs {
-			headers := extractHeaders(d.Headers)
-			m := ezbus.Message{Headers: headers, Body: d.Body}
-			messages <- m
-			b.channel.Ack(d.DeliveryTag, false)
-		}
-	}()
+	for d := range msgs {
+		headers := extractHeaders(d.Headers)
+		m := ezbus.Message{Headers: headers, Body: d.Body}
+		handle(m)
+		d.Ack(false)
+	}
 
+	<-b.done
+	log.Printf("Hm")
 	return nil
 }
 
 func (b *Broker) Stop() error {
+	b.done <- struct{}{}
+
 	err := b.channel.Close()
 	if err != nil {
 		return fmt.Errorf("Channel Close: %s", err)
@@ -117,7 +123,7 @@ func (b *Broker) Endpoint() string {
 }
 
 func (b *Broker) Subscribe(endpoint string, messageName string) error {
-	log.Println(fmt.Sprintf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint))
+	log.Printf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint)
 	return queueBind(b.channel, b.Endpoint(), messageName, endpoint)
 }
 

@@ -13,7 +13,7 @@ func queueDeclare(c *amqp.Channel, name string) (amqp.Queue, error) {
 
 func publish(c *amqp.Channel, m ezbus.Message, dst string, exchange string) error {
 	if c == nil {
-		return fmt.Errorf("Channel is nil.")
+		return fmt.Errorf("publish: Channel is nil.")
 	}
 
 	headers := make(amqp.Table)
@@ -24,9 +24,10 @@ func publish(c *amqp.Channel, m ezbus.Message, dst string, exchange string) erro
 
 	return c.Publish(exchange, dst, false, false,
 		amqp.Publishing{
-			ContentType: "application/json",
-			Headers:     headers,
-			Body:        m.Body,
+			ContentType:  "application/json",
+			Headers:      headers,
+			Body:         m.Body,
+			DeliveryMode: amqp.Persistent,
 		})
 }
 

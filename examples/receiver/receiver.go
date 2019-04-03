@@ -28,7 +28,7 @@ func main() {
 		var po PlaceOrder
 		json.Unmarshal(m.Body, &po)
 		n++
-		log.Println(fmt.Sprintf(" %d OrderPlaced messages handled", n))
+		log.Println(fmt.Sprintf(" %d PlaceOrder messages handled", n))
 		bus.Publish(OrderPlaced{po.ID})
 	})
 

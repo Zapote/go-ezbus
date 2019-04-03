@@ -15,7 +15,7 @@ func main() {
 		log.Panicf("Failed to create bus: %s", err)
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1; i++ {
 		err := bus.Send("rabbitmq.example.receiver", PlaceOrder{"1337"})
 		if err != nil {
 			log.Println(err)

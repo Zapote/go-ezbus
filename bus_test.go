@@ -125,8 +125,7 @@ func (b *FakeBroker) Publish(msg Message) error {
 	return nil
 }
 
-func (b *FakeBroker) Start(messages chan<- Message) error {
-	b.messages = messages
+func (b *FakeBroker) Start(handle MessageHandler) error {
 	return nil
 }
 

@@ -4,6 +4,12 @@ import (
 	"log"
 )
 
+//MessageHandler func for handling messsages
+type MessageHandler = func(m Message)
+
+//Middleware for router message handling
+type Middleware = func(next MessageHandler) MessageHandler
+
 //Router calls correct MessageHandler func for an incoming message.
 type Router struct {
 	handlers    map[string]MessageHandler
