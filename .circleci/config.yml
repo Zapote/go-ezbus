@@ -4,9 +4,9 @@ jobs:
     docker:
         - image: circleci/golang:1.9
     working_directory: /go/src/github.com/zapote/go-ezbus
-     steps:
-      - checkout
      
+    steps:
+      - checkout
       - run: 
           name: Get go deps
           command: go get -v -t -d ./...
