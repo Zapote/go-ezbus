@@ -26,6 +26,6 @@ func main() {
 	})
 
 	bus := ezbus.NewBus(b, *r)
-	bus.Subscribe("rabbitmq.example.receiver")
+	bus.SubscribeMessage("rabbitmq.example.receiver", "OrderPlaced")
 	bus.Go()
 }

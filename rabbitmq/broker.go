@@ -14,17 +14,17 @@ type Broker struct {
 	conn      *amqp.Connection
 	channel   *amqp.Channel
 	cfg       config
-	done      chan (struct{})
 }
 
 //NewBroker creates a RabbitMQ broker instance
 //Default url amqp://guest:guest@localhost:5672
 //Default prefetchCount 100
 func NewBroker(queueName string) *Broker {
-	b := Broker{queueName: queueName, done: make(chan (struct{}))}
+	b := Broker{queueName: queueName}
 	b.cfg = config{
 		url:           "amqp://guest:guest@localhost:5672",
-		prefetchCount: 1}
+		prefetchCount: 100,
+	}
 	return &b
 }
 
@@ -37,8 +37,8 @@ func (b *Broker) Send(dst string, m ezbus.Message) error {
 }
 
 func (b *Broker) Publish(m ezbus.Message) error {
-	msgName := m.Headers[ezbus.MessageName]
-	err := publish(b.channel, m, "", msgName)
+	//msgName := m.Headers[ezbus.MessageName]
+	err := publish(b.channel, m, "", b.queueName)
 	if err != nil {
 		return fmt.Errorf("Publish: %s", err)
 	}
@@ -90,22 +90,19 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	if err != nil {
 		return fmt.Errorf("Queue Consume: %s", err)
 	}
-
-	for d := range msgs {
-		headers := extractHeaders(d.Headers)
-		m := ezbus.Message{Headers: headers, Body: d.Body}
-		handle(m)
-		d.Ack(false)
-	}
-
-	<-b.done
-	log.Printf("Hm")
+	go func() {
+		for d := range msgs {
+			headers := extractHeaders(d.Headers)
+			m := ezbus.Message{Headers: headers, Body: d.Body}
+			handle(m)
+			b.channel.Ack(d.DeliveryTag, false)
+		}
+	}()
+	log.Print("RabbitMQ broker started")
 	return nil
 }
 
 func (b *Broker) Stop() error {
-	b.done <- struct{}{}
-
 	err := b.channel.Close()
 	if err != nil {
 		return fmt.Errorf("Channel Close: %s", err)
@@ -125,7 +122,6 @@ func (b *Broker) Endpoint() string {
 
 //Subscribe to messages from specific endpoint
 func (b *Broker) Subscribe(endpoint string, messageName string) error {
-	log.Printf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint)
 	return queueBind(b.channel, b.Endpoint(), messageName, endpoint)
 }
 

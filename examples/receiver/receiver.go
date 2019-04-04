@@ -29,7 +29,10 @@ func main() {
 		json.Unmarshal(m.Body, &po)
 		n++
 		log.Println(fmt.Sprintf(" %d PlaceOrder messages handled", n))
-		bus.Publish(OrderPlaced{po.ID})
+		err := bus.Publish(OrderPlaced{po.ID})
+		if err != nil {
+			log.Panic(err)
+		}
 	})
 
 	bus.Go()
