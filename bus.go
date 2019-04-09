@@ -22,7 +22,6 @@ type subscriptions []subscription
 type Bus struct {
 	broker      Broker
 	router      Router
-	done        chan (struct{})
 	subscribers []subscription
 }
 
@@ -31,7 +30,6 @@ func NewBus(b Broker, r Router) *Bus {
 	bus := Bus{
 		broker:      b,
 		router:      r,
-		done:        make(chan struct{}),
 		subscribers: make([]subscription, 0)}
 
 	return &bus
@@ -51,8 +49,6 @@ func (b *Bus) Go() {
 		b.broker.Subscribe(s.endpoint, s.messageName)
 	}
 	log.Println("Bus is on the Go!")
-	<-b.done
-	log.Println("Bus is parked!")
 }
 
 //Stop the bus and any incoming messages.
@@ -103,10 +99,15 @@ func (b *Bus) handle(m Message) {
 		b.router.handle(n, m)
 	}, 5)
 
+	if err == nil {
+		return
+	}
+
+	eq := fmt.Sprintf("%s.error", b.broker.Endpoint())
+	log.Println("Failed to handle message. Putting on error queue: ", eq)
+	err = b.broker.Send(eq, m)
 	if err != nil {
-		eq := fmt.Sprintf("%s.error", b.broker.Endpoint())
-		log.Println("Failed to handle message. Putting on error queue: ", eq)
-		b.broker.Send(eq, m)
+		log.Println("Failed to put message on error queue: ", eq)
 	}
 }
 
