@@ -12,8 +12,8 @@ import (
 
 var broker = newFakeBroker()
 var msg = FakeMessage{ID: "123-4"}
-var router = NewRouter()
-var bus = NewBus(broker, *router)
+var rtr = NewRouter()
+var bus = NewBus(broker, rtr)
 
 func TestSendCorrectDestination(t *testing.T) {
 	bus.Send("queue.name", msg)
@@ -46,7 +46,7 @@ func TestReceive(t *testing.T) {
 	wg.Add(1)
 	handled := false
 
-	router.Handle("FakeMessage", func(m Message) {
+	rtr.Handle("FakeMessage", func(m Message) {
 		handled = true
 		wg.Done()
 	})
@@ -64,7 +64,7 @@ func TestReceiveErrorShallRetryFiveTimes(t *testing.T) {
 	wg.Add(5)
 	n := 0
 
-	router.Handle("FakeMessage", func(m Message) {
+	rtr.Handle("FakeMessage", func(m Message) {
 		n++
 		wg.Done()
 		panic("Error in message")
@@ -81,13 +81,13 @@ func TestReceiveErrorShallSendToErrorQueue(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(5)
 	n := 0
-	router.Handle("FakeMessage", func(m Message) {
+	rtr.Handle("FakeMessage", func(m Message) {
 		n++
 		wg.Done()
 		panic("Error in message")
 	})
 
-	go bus.Go()
+	bus.Go()
 	defer bus.Stop()
 	broker.invoke()
 	wg.Wait()

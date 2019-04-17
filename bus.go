@@ -96,7 +96,7 @@ func (b *Bus) Subscribe(endpoint string) {
 func (b *Bus) handle(m Message) {
 	n := m.Headers[headers.MessageName]
 	err := retry(func() {
-		b.router.handle(n, m)
+		b.router.Receive(n, m)
 	}, 5)
 
 	if err == nil {
