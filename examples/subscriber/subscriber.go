@@ -25,7 +25,7 @@ func main() {
 		log.Printf(" %v OrderPlaced messages handled", po)
 	})
 
-	bus := ezbus.NewBus(b, *r)
+	bus := ezbus.NewBus(b, r)
 	bus.SubscribeMessage("rabbitmq.example.receiver", "OrderPlaced")
 	bus.Go()
 }

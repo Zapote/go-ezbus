@@ -16,7 +16,7 @@ func TestInvokeCorrectHandler(t *testing.T) {
 		h = true
 	})
 
-	r.handle("TestMessage", NewMessage(nil, nil))
+	r.Receive("TestMessage", NewMessage(nil, nil))
 
 	assert.IsTrue(t, h, "Message should be handled")
 }
@@ -28,7 +28,7 @@ func TestNoInvokationOfHandler(t *testing.T) {
 		h = true
 	})
 
-	r.handle("NoMessageToHandle", NewMessage(nil, nil))
+	r.Receive("NoMessageToHandle", NewMessage(nil, nil))
 
 	assert.IsFalse(t, h, "Message should not be handled")
 }
@@ -68,7 +68,7 @@ func TestMiddlewareCalledInCorrectOrder(t *testing.T) {
 		}
 	})
 
-	r.handle("TestMessage", NewMessage(nil, nil))
+	r.Receive("TestMessage", NewMessage(nil, nil))
 
 	assert.IsEqual(t, c1, 0)
 	assert.IsEqual(t, c3, 1)
