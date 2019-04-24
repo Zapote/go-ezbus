@@ -13,7 +13,7 @@ import (
 var broker = newFakeBroker()
 var msg = FakeMessage{ID: "123-4"}
 var rtr = NewRouter()
-var bus = NewBus(broker, rtr)
+var b = NewBus(broker, rtr)
 
 func TestSendCorrectDestination(t *testing.T) {
 	b.Send("queue.name", msg)
