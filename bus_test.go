@@ -13,15 +13,15 @@ import (
 var broker = newFakeBroker()
 var msg = FakeMessage{ID: "123-4"}
 var router = NewRouter()
-var bus = NewBus(broker, *router)
+var b = NewBus(broker, *router)
 
 func TestSendCorrectDestination(t *testing.T) {
-	bus.Send("queue.name", msg)
+	b.Send("queue.name", msg)
 	assert.IsEqual(t, broker.sentDst, "queue.name")
 }
 
 func TestSendHasCorrectMessageBody(t *testing.T) {
-	bus.Send("queueName", msg)
+	b.Send("queueName", msg)
 
 	m := broker.sentMessage.(Message)
 
@@ -32,7 +32,7 @@ func TestSendHasCorrectMessageBody(t *testing.T) {
 }
 
 func TestSendHasCorrectHeaders(t *testing.T) {
-	bus.Send("queueName", msg)
+	b.Send("queueName", msg)
 
 	m := broker.sentMessage.(Message)
 
@@ -51,8 +51,8 @@ func TestReceive(t *testing.T) {
 		wg.Done()
 	})
 
-	go bus.Go()
-	defer bus.Stop()
+	go b.Go()
+	defer b.Stop()
 	broker.invoke()
 
 	wg.Wait()
@@ -70,8 +70,8 @@ func TestReceiveErrorShallRetryFiveTimes(t *testing.T) {
 		panic("Error in message")
 	})
 
-	go bus.Go()
-	defer bus.Stop()
+	go b.Go()
+	defer b.Stop()
 	broker.invoke()
 	wg.Wait()
 	assert.IsEqual(t, n, 5)
@@ -87,8 +87,8 @@ func TestReceiveErrorShallSendToErrorQueue(t *testing.T) {
 		panic("Error in message")
 	})
 
-	go bus.Go()
-	defer bus.Stop()
+	go b.Go()
+	defer b.Stop()
 	broker.invoke()
 	wg.Wait()
 	assert.IsEqual(t, broker.sentDst, fmt.Sprintf("%s.error", broker.Endpoint()))

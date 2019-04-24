@@ -18,8 +18,17 @@ type subscription struct {
 
 type subscriptions []subscription
 
-// Bus for publishing, sending and receiving messages
-type Bus struct {
+//Bus for publishing, sending and receiving messages
+type Bus interface {
+	Go()
+	Stop()
+	Send(dst string, msg interface{}) error
+	Publish(msg interface{}) error
+	Subscribe(endpoint string)
+	SubscribeMessage(endpoint string, messageName string)
+}
+
+type bus struct {
 	broker      Broker
 	router      Router
 	done        chan (struct{})
@@ -27,8 +36,8 @@ type Bus struct {
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
-func NewBus(b Broker, r Router) *Bus {
-	bus := Bus{
+func NewBus(b Broker, r Router) Bus {
+	bus := bus{
 		broker:      b,
 		router:      r,
 		done:        make(chan struct{}),
@@ -37,44 +46,34 @@ func NewBus(b Broker, r Router) *Bus {
 	return &bus
 }
 
-// NewSendOnlyBus creates a bus instance for sending messages.
-func NewSendOnlyBus(b Broker) (*Bus, error) {
-	bus := Bus{broker: b}
-	err := bus.broker.Start(bus.handle)
-	return &bus, err
-}
-
 //Go starts the bus and listens to incoming messages.
-func (b *Bus) Go() {
+func (b *bus) Go() {
 	b.startBroker()
 	for _, s := range b.subscribers {
 		b.broker.Subscribe(s.endpoint, s.messageName)
 	}
 	log.Println("Bus is on the Go!")
-	<-b.done
-	log.Println("Bus is parked!")
+	//<-b.done
 }
 
 //Stop the bus and any incoming messages.
-func (b *Bus) Stop() {
+func (b *bus) Stop() {
 	defer log.Println("Bus stopped.")
 	b.broker.Stop()
 }
 
 // Send message to destination.
-func (b *Bus) Send(dst string, msg interface{}) error {
+func (b *bus) Send(dst string, msg interface{}) error {
 	json, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
-
 	t := reflect.TypeOf(msg)
-
 	return b.broker.Send(dst, NewMessage(getHeaders(t, dst), json))
 }
 
 //Publish message to subscribers
-func (b *Bus) Publish(msg interface{}) error {
+func (b *bus) Publish(msg interface{}) error {
 	json, err := json.Marshal(msg)
 	if err != nil {
 		return err
@@ -86,18 +85,18 @@ func (b *Bus) Publish(msg interface{}) error {
 }
 
 //SubscribeMessage to a specific message from a publisher. Provide endpoint (queue) and name of the message to subscribe to.
-func (b *Bus) SubscribeMessage(endpoint string, messageName string) {
+func (b *bus) SubscribeMessage(endpoint string, messageName string) {
 	log.Printf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint)
 	b.subscribers = append(b.subscribers, subscription{endpoint, messageName})
 }
 
 //Subscribe to all messages from a publisher. Provide endpoint (queue).
-func (b *Bus) Subscribe(endpoint string) {
+func (b *bus) Subscribe(endpoint string) {
 	log.Printf("Subscribing to all messages from endpoint '%s'", endpoint)
 	b.subscribers = append(b.subscribers, subscription{endpoint, ""})
 }
 
-func (b *Bus) handle(m Message) {
+func (b *bus) handle(m Message) {
 	n := m.Headers[headers.MessageName]
 	err := retry(func() {
 		b.router.handle(n, m)
@@ -110,9 +109,8 @@ func (b *Bus) handle(m Message) {
 	}
 }
 
-func (b *Bus) startBroker() {
+func (b *bus) startBroker() {
 	err := b.broker.Start(b.handle)
-
 	if err != nil {
 		log.Panicln("Failed to start broker: ", err)
 	}

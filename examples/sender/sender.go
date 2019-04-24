@@ -9,20 +9,17 @@ import (
 
 func main() {
 	b := rabbitmq.NewBroker("")
-	bus, err := ezbus.NewSendOnlyBus(b)
-
-	if err != nil {
-		log.Panicf("Failed to create bus: %s", err)
-	}
+	r := ezbus.NewRouter()
+	bus := ezbus.NewBus(b, *r)
 
 	for i := 0; i < 1; i++ {
-		err := bus.Send("rabbitmq.example.receiver", PlaceOrder{"1337"})
+		err := bus.Send("rabbitmq.example.receiver", placeOrder{"1337"})
 		if err != nil {
 			log.Println(err)
 		}
 	}
 }
 
-type PlaceOrder struct {
+type placeOrder struct {
 	ID string
 }
