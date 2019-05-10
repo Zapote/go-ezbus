@@ -36,6 +36,7 @@ func (b *Broker) Send(dst string, m ezbus.Message) error {
 	return err
 }
 
+//Publish publishes message on exhange
 func (b *Broker) Publish(m ezbus.Message) error {
 	//msgName := m.Headers[ezbus.MessageName]
 	err := publish(b.channel, m, "", b.queueName)
@@ -65,33 +66,26 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	}
 
 	err = b.channel.Qos(b.cfg.prefetchCount, 0, false)
-
 	if err != nil {
 		return fmt.Errorf("Qos: %s", err)
 	}
 
 	queue, err := declareQueue(b.channel, b.queueName)
-
 	if err != nil {
 		return fmt.Errorf("Declare Queue : %s", err)
 	}
-
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
 	_, err = declareQueue(b.channel, fmt.Sprintf("%s.error", b.queueName))
-
 	if err != nil {
 		return fmt.Errorf("Declare Error Queue : %s", err)
 	}
-
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
 	err = declareExchange(b.channel, b.queueName)
-
 	if err != nil {
 		return fmt.Errorf("Declare Exchange : %s", err)
 	}
-
 	log.Printf("Exchange declared. (%q)", b.queueName)
 
 	msgs, err := b.channel.Consume(queue.Name, "", false, false, false, false, nil)
