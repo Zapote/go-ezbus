@@ -45,6 +45,7 @@ func (b *Broker) Publish(m ezbus.Message) error {
 	return err
 }
 
+//Start starts the RabbitMQ broker and declars queue, and exchange.
 func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	cn, err := amqp.Dial(b.cfg.url)
 
@@ -77,6 +78,14 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
+	_, err = declareQueue(b.channel, fmt.Sprintf("%s.error", b.queueName))
+
+	if err != nil {
+		return fmt.Errorf("Declare Error Queue : %s", err)
+	}
+
+	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
+
 	err = declareExchange(b.channel, b.queueName)
 
 	if err != nil {
@@ -102,6 +111,7 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	return nil
 }
 
+//Stop stops the RabbitMQ broker
 func (b *Broker) Stop() error {
 	err := b.channel.Close()
 	if err != nil {
