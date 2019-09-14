@@ -1,9 +1,15 @@
+##### Build status 
+[![CircleCI](https://circleci.com/gh/Zapote/go-ezbus/tree/master.svg?style=svg)](https://circleci.com/gh/Zapote/go-ezbus/tree/master)
+
 # go-ezbus
 This is a package for communication between services in a distrubuted architecture.
 RabbitMQ as transport
 
 
-pub/sub pattern
+
+
+
+# pub/sub pattern
 ```code
                                        subscriber a
                                       /
