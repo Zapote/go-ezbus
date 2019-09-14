@@ -38,10 +38,12 @@ func main() {
 	bus.Go()
 }
 
+//PlaceOrder command
 type PlaceOrder struct {
 	ID string
 }
 
+//OrderPlaced event
 type OrderPlaced struct {
 	ID string
 }
