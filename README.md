@@ -30,7 +30,7 @@ r := ezbus.NewRouter()
 r.Handle("placeOrder", func(message) {
     PlaceOrder po
     json.Unmarshal(m.Body, &po) 
-    bus.publish(OrderPlaced {po.ID})
+    bus.Publish(OrderPlaced {po.ID})
 })
 
 b := ezbus.NewBroker("my.queue");
