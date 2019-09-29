@@ -20,12 +20,32 @@ type subscriptions []subscription
 
 //Bus for publishing, sending and receiving messages
 type Bus interface {
-	Go()
-	Stop()
+	StarterStopper
+	Sender
+	Publisher
+	Subscriber
+}
+
+// Sender interface
+type Sender interface {
 	Send(dst string, msg interface{}) error
+}
+
+// Publisher interface
+type Publisher interface {
 	Publish(msg interface{}) error
+}
+
+//Subscriber interface
+type Subscriber interface {
 	Subscribe(endpoint string)
 	SubscribeMessage(endpoint string, messageName string)
+}
+
+//StarterStopper interface
+type StarterStopper interface {
+	Go() error
+	Stop() error
 }
 
 type bus struct {
@@ -45,18 +65,25 @@ func NewBus(b Broker, r Router) Bus {
 }
 
 //Go starts the bus and listens to incoming messages.
-func (b *bus) Go() {
-	b.startBroker()
-	for _, s := range b.subscribers {
-		b.broker.Subscribe(s.endpoint, s.messageName)
+func (b *bus) Go() error {
+	err := b.broker.Start(b.handle)
+	if err != nil {
+		return err
 	}
-	log.Println("Bus is on the Go!")
+	for _, s := range b.subscribers {
+		err = b.broker.Subscribe(s.endpoint, s.messageName)
+		if err != nil {
+			return err
+		}
+	}
+	defer log.Println("Bus is on the Go!")
+	return nil
 }
 
 //Stop the bus and any incoming messages.
-func (b *bus) Stop() {
+func (b *bus) Stop() error {
 	defer log.Println("Bus stopped.")
-	b.broker.Stop()
+	return b.broker.Stop()
 }
 
 // Send message to destination.
@@ -108,13 +135,6 @@ func (b *bus) handle(m Message) {
 	err = b.broker.Send(eq, m)
 	if err != nil {
 		log.Println("Failed to put message on error queue: ", eq)
-	}
-}
-
-func (b *bus) startBroker() {
-	err := b.broker.Start(b.handle)
-	if err != nil {
-		log.Panicln("Failed to start broker: ", err)
 	}
 }
 
