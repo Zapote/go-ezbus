@@ -12,8 +12,9 @@ var r = NewRouter()
 func TestInvokeCorrectHandler(t *testing.T) {
 	var h = false
 
-	r.Handle("TestMessage", func(m Message) {
+	r.Handle("TestMessage", func(m Message) error {
 		h = true
+		return nil
 	})
 
 	r.Receive("TestMessage", NewMessage(nil, nil))
@@ -24,8 +25,9 @@ func TestInvokeCorrectHandler(t *testing.T) {
 func TestNoInvokationOfHandler(t *testing.T) {
 	h := false
 
-	r.Handle("TestMessage", func(m Message) {
+	r.Handle("TestMessage", func(m Message) error {
 		h = true
+		return nil
 	})
 
 	r.Receive("NoMessageToHandle", NewMessage(nil, nil))
@@ -37,14 +39,15 @@ func TestMiddlewareCalledInCorrectOrder(t *testing.T) {
 	var c1, c2, c3, c4, h int
 	idx := 0
 
-	r.Handle("TestMessage", func(m Message) {
+	r.Handle("TestMessage", func(m Message) error {
 		log.Printf("handler")
 		h = idx
 		idx++
+		return nil
 	})
 
 	r.Middleware(func(next MessageHandler) MessageHandler {
-		return func(m Message) {
+		return func(m Message) error {
 			log.Printf("bmw1")
 			c1 = idx
 			idx++
@@ -52,12 +55,12 @@ func TestMiddlewareCalledInCorrectOrder(t *testing.T) {
 			c2 = idx
 			idx++
 			log.Printf("amw1")
-
+			return nil
 		}
 	})
 
 	r.Middleware(func(next MessageHandler) MessageHandler {
-		return func(m Message) {
+		return func(m Message) error {
 			log.Printf("bmw2")
 			c3 = idx
 			idx++
@@ -65,6 +68,7 @@ func TestMiddlewareCalledInCorrectOrder(t *testing.T) {
 			c4 = idx
 			idx++
 			log.Printf("amw2")
+			return nil
 		}
 	})
 

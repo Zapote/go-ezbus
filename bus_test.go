@@ -2,6 +2,7 @@ package ezbus
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -46,9 +47,10 @@ func TestReceive(t *testing.T) {
 	wg.Add(1)
 	handled := false
 
-	rtr.Handle("FakeMessage", func(m Message) {
+	rtr.Handle("FakeMessage", func(m Message) error {
 		handled = true
 		wg.Done()
+		return nil
 	})
 
 	go b.Go()
@@ -64,10 +66,10 @@ func TestReceiveErrorShallRetryFiveTimes(t *testing.T) {
 	wg.Add(5)
 	n := 0
 
-	rtr.Handle("FakeMessage", func(m Message) {
+	rtr.Handle("FakeMessage", func(m Message) error {
 		n++
 		wg.Done()
-		panic("Error in message")
+		return errors.New("Error in message")
 	})
 
 	go b.Go()
@@ -81,10 +83,10 @@ func TestReceiveErrorShallSendToErrorQueue(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(5)
 	n := 0
-	rtr.Handle("FakeMessage", func(m Message) {
+	rtr.Handle("FakeMessage", func(m Message) error {
 		n++
 		wg.Done()
-		panic("Error in message")
+		return errors.New("Error in message")
 	})
 
 	go b.Go()

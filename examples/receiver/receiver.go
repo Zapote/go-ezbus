@@ -16,23 +16,21 @@ func main() {
 	r := ezbus.NewRouter()
 	bus := ezbus.NewBus(b, r)
 
-	r.Middleware(func(next func(m ezbus.Message)) func(m ezbus.Message) {
-		return func(m ezbus.Message) {
+	r.Middleware(func(next func(m ezbus.Message) error) func(m ezbus.Message) error {
+		return func(m ezbus.Message) error {
 			t := time.Now()
 			next(m)
 			log.Println(fmt.Sprintf("Message handled in %v us", time.Since(t).Seconds()*1000000))
+			return nil
 		}
 	})
 
-	r.Handle("PlaceOrder", func(m ezbus.Message) {
+	r.Handle("PlaceOrder", func(m ezbus.Message) error {
 		var po PlaceOrder
 		json.Unmarshal(m.Body, &po)
 		n++
 		log.Println(fmt.Sprintf(" %d PlaceOrder messages handled", n))
-		err := bus.Publish(OrderPlaced{po.ID})
-		if err != nil {
-			log.Panic(err)
-		}
+		return bus.Publish(OrderPlaced{po.ID})
 	})
 
 	bus.Go()

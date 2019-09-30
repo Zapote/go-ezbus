@@ -1,11 +1,9 @@
 package ezbus
 
-import (
-	"log"
-)
+import "fmt"
 
 //MessageHandler func for handling messsages
-type MessageHandler = func(m Message)
+type MessageHandler = func(m Message) error
 
 //Middleware for router message handling
 type Middleware = func(next MessageHandler) MessageHandler
@@ -14,7 +12,7 @@ type Middleware = func(next MessageHandler) MessageHandler
 type Router interface {
 	Handle(messageName string, h MessageHandler)
 	Middleware(mw Middleware)
-	Receive(n string, m Message)
+	Receive(n string, m Message) error
 }
 
 type router struct {
@@ -42,16 +40,15 @@ func (r *router) Middleware(mw Middleware) {
 }
 
 //Receive tries to find a registered handler for ezbus.Message m,  based on message name, n
-func (r *router) Receive(n string, m Message) {
+func (r *router) Receive(n string, m Message) error {
 	handler, ok := r.handlers[n]
 	if !ok {
-		log.Printf("No handler found for message namned '%s'", n)
-		return
+		return fmt.Errorf("No handler found for message namned '%s'", n)
 	}
 
 	l := len(r.middlewares) - 1
 	for i := l; i >= 0; i-- {
 		handler = r.middlewares[i](handler)
 	}
-	handler(m)
+	return handler(m)
 }

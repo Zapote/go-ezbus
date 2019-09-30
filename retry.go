@@ -1,20 +1,18 @@
 package ezbus
 
-import (
-	"fmt"
-)
+import "log"
 
-func retry(fn func(), attempts int) (err error) {
-	defer func() {
-		if r := recover(); r != nil && attempts > 1 {
-			err = fmt.Errorf("%v", r)
-			retry(fn, attempts-1)
-		} else {
-			attempts = 0
-		}
-	}()
+func retry(fn func() error, attempts int) error {
+	err := fn()
+	attempts--
+	if attempts == 0 {
+		return err
+	}
 
-	fn()
+	if err != nil {
+		log.Printf("Attempt failed: %s", err.Error())
+		return retry(fn, attempts)
+	}
 
-	return err
+	return nil
 }
