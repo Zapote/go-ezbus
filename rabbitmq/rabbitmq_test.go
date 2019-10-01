@@ -7,6 +7,8 @@ import (
 	"github.com/streadway/amqp"
 )
 
+var cn *amqp.Connection
+
 func TestDeclareQueue(t *testing.T) {
 	const queueName = "rabbitmq-test-queue"
 	ch, err := channel()
@@ -14,12 +16,18 @@ func TestDeclareQueue(t *testing.T) {
 		t.Errorf("Failed to get channel: %s", err.Error())
 	}
 
-	_, err = declareQueue(ch, queueName)
+	q, err := declareQueue(ch, queueName)
 	if err != nil {
 		t.Errorf("Failed to declare queue: %s", err.Error())
 	}
 
+	if q.Name != queueName {
+		t.Errorf("Queue name should be '%s' not %s", queueName, q.Name)
+	}
+
 	ch.QueueDelete(queueName, true, true, false)
+	ch.Close()
+	cn.Close()
 }
 
 func TestDeclareExchange(t *testing.T) {
@@ -36,6 +44,8 @@ func TestDeclareExchange(t *testing.T) {
 	}
 
 	ch.ExchangeDelete(exchangeName, true, false)
+	ch.Close()
+	cn.Close()
 }
 
 func channel() (*amqp.Channel, error) {
