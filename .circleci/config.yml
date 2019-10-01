@@ -14,7 +14,7 @@ jobs:
       - run: 
           name: Get go deps
           command: go get -v -t -d ./...
-      - run: sleep 15
+      - run: sleep 3
       - run:
           name: Unit tests
           command: | 
