@@ -2,16 +2,15 @@ version: 2
 jobs:
   build:
     docker:
-        - image: circleci/golang:1.9
+        - image: circleci/golang
+        - image: circleci/rabbitmq
+      ports:
+        - "5672:5672"
     working_directory: /go/src/github.com/zapote/go-ezbus
      
     steps:
       - checkout
-      - run:
-          name: Install RabbitMQ
-          command: |
-             docker pull circleci/rabbitmq
-             docker run -d -p 5762:5762 circleci/rabbitmq
+      
       - run: 
           name: Get go deps
           command: go get -v -t -d ./...
