@@ -7,14 +7,13 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var cn *amqp.Connection
-
 func TestDeclareQueue(t *testing.T) {
 	const queueName = "rabbitmq-test-queue"
-	ch, err := channel()
+	cn, err := connection()
 	if err != nil {
-		t.Errorf("Failed to get channel: %s", err.Error())
+		t.Errorf("Failed to get connection: %s", err.Error())
 	}
+	ch, _ := cn.Channel()
 
 	q, err := declareQueue(ch, queueName)
 	if err != nil {
@@ -32,11 +31,11 @@ func TestDeclareQueue(t *testing.T) {
 
 func TestDeclareExchange(t *testing.T) {
 	const exchangeName = "rabbitmq-test-exchange"
-
-	ch, err := channel()
+	cn, err := connection()
 	if err != nil {
-		t.Errorf("Failed to get channel: %s", err.Error())
+		t.Errorf("Failed to get connection: %s", err.Error())
 	}
+	ch, _ := cn.Channel()
 
 	err = declareExchange(ch, exchangeName)
 	if err != nil {
@@ -48,18 +47,12 @@ func TestDeclareExchange(t *testing.T) {
 	cn.Close()
 }
 
-func channel() (*amqp.Channel, error) {
+func connection() (*amqp.Connection, error) {
 	cn, err := amqp.Dial("amqp:localhost")
 
 	if err != nil {
 		return nil, fmt.Errorf("Dial: %s", err)
 	}
 
-	ch, err := cn.Channel()
-
-	if err != nil {
-		return nil, fmt.Errorf("Dial: %s", err)
-	}
-
-	return ch, nil
+	return cn, nil
 }
