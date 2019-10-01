@@ -4,8 +4,8 @@ jobs:
     docker:
         - image: circleci/golang
         - image: circleci/rabbitmq
-      ports:
-        - "5672:5672"
+        ports:
+          - "5672:5672"
     working_directory: /go/src/github.com/zapote/go-ezbus
      
     steps:
