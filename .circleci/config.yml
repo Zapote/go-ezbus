@@ -7,6 +7,11 @@ jobs:
      
     steps:
       - checkout
+      - run:
+          name: Install RabbitMQ
+          command: |
+             docker pull rabbitmq:3-alpine
+             docker run -d -p 5762:5762 rabbitmq:3-alpine
       - run: 
           name: Get go deps
           command: go get -v -t -d ./...

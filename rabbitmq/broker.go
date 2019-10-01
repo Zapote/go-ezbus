@@ -13,7 +13,7 @@ type Broker struct {
 	queueName string
 	conn      *amqp.Connection
 	channel   *amqp.Channel
-	cfg       config
+	cfg       *config
 }
 
 //NewBroker creates a RabbitMQ broker instance
@@ -21,13 +21,15 @@ type Broker struct {
 //Default prefetchCount 100
 func NewBroker(queueName string) *Broker {
 	b := Broker{queueName: queueName}
-	b.cfg = config{
-		url:           "amqp://guest:guest@localhost:5672",
-		prefetchCount: 100,
+	b.cfg = &config{
+		url:                "amqp://guest:guest@localhost:5672",
+		prefetchCount:      100,
+		queueNameDelimiter: "-",
 	}
 	return &b
 }
 
+//Send sends a message to given destination
 func (b *Broker) Send(dst string, m ezbus.Message) error {
 	err := publish(b.channel, m, dst, "")
 	if err != nil {
@@ -76,7 +78,7 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	}
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
-	_, err = declareQueue(b.channel, fmt.Sprintf("%s.error", b.queueName))
+	_, err = declareQueue(b.channel, fmt.Sprintf("%s%serror", b.queueName, b.cfg.queueNameDelimiter))
 	if err != nil {
 		return fmt.Errorf("Declare Error Queue : %s", err)
 	}
@@ -130,11 +132,8 @@ func (b *Broker) Subscribe(endpoint string, messageName string) error {
 }
 
 //Configure RabbitMQ.
-//url to broker
-//prefetchCount
-func (b *Broker) Configure(url string, prefetchCount int) {
-	b.cfg.url = url
-	b.cfg.prefetchCount = prefetchCount
+func (b *Broker) Configure() Configurer {
+	return b.cfg
 }
 
 func extractHeaders(h amqp.Table) map[string]string {
