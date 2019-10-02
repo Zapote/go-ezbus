@@ -47,6 +47,32 @@ func TestDeclareExchange(t *testing.T) {
 	cn.Close()
 }
 
+func TestQueueBind(t *testing.T) {
+	const queueName = "rabbitmq-test-queue"
+	const exchangeName = "rabbitmq-test-exchange"
+	cn, err := connection()
+	if err != nil {
+		t.Errorf("Failed to get connection: %s", err.Error())
+	}
+
+	ch, _ := cn.Channel()
+
+	_, err = declareQueue(ch, queueName)
+	if err != nil {
+		t.Errorf("Failed to declare exchange: %s", err.Error())
+	}
+
+	err = declareExchange(ch, exchangeName)
+	if err != nil {
+		t.Errorf("Failed to declare exchange: %s", err.Error())
+	}
+
+	err = queueBind(ch, queueName, "", exchangeName)
+	if err != nil {
+		t.Errorf("Failed to bind to queue: %s", err.Error())
+	}
+}
+
 func connection() (*amqp.Connection, error) {
 	cn, err := amqp.Dial("amqp:localhost")
 
