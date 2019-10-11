@@ -135,12 +135,6 @@ func (b *bus) handle(m Message) error {
 	return b.broker.Send(eq, m)
 }
 
-func recoverHandle(m Message) {
-	if err := recover(); err != nil {
-		log.Printf("Failed to handle '%s': %s", m.Headers[headers.MessageName], err)
-	}
-}
-
 func getHeaders(msgType reflect.Type, dst string) map[string]string {
 	h := make(map[string]string)
 	h[headers.MessageName] = msgType.Name()

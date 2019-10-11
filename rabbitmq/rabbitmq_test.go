@@ -1,10 +1,15 @@
 package rabbitmq
 
+/*
+	Needs a running RabbmitMQ on localhost:5672
+*/
 import (
 	"fmt"
 	"testing"
 
 	"github.com/streadway/amqp"
+	ezbus "github.com/zapote/go-ezbus"
+	"github.com/zapote/go-ezbus/assert"
 )
 
 func TestDeclareQueue(t *testing.T) {
@@ -71,6 +76,39 @@ func TestQueueBind(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to bind to queue: %s", err.Error())
 	}
+
+}
+
+func TestPublishQueue(t *testing.T) {
+	const queueName = "rabbitmq-test-queue"
+	cn, err := connection()
+
+	if err != nil {
+		t.Errorf("Failed to get connection: %s", err.Error())
+	}
+
+	ch, _ := cn.Channel()
+	ch.QueuePurge(queueName, true)
+	_, err = declareQueue(ch, queueName)
+	if err != nil {
+		t.Errorf("Failed to declare exchange: %s", err.Error())
+	}
+
+	h := make(map[string]string)
+	h["header-one"] = "test"
+	b := []byte("test-message")
+
+	cch, _ := consume(ch, queueName)
+
+	publish(ch, ezbus.NewMessage(h, b), queueName, "")
+
+	delivery := <-cch
+
+	assert.IsEqual(t, delivery.ContentType, "application/json")
+	assert.IsEqual(t, "test-message", string(delivery.Body))
+	assert.IsEqual(t, "test", delivery.Headers["header-one"])
+
+	delivery.Ack(false)
 }
 
 func connection() (*amqp.Connection, error) {
