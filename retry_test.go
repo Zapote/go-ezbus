@@ -7,7 +7,7 @@ import (
 	"github.com/zapote/go-ezbus/assert"
 )
 
-func TestRetryRunsThreeAttempsWhenPanic(t *testing.T) {
+func TestRetryRunsThreeAttempsOnError(t *testing.T) {
 	n := 0
 
 	err := retry(func() error {
@@ -16,6 +16,18 @@ func TestRetryRunsThreeAttempsWhenPanic(t *testing.T) {
 	}, 3)
 
 	assert.IsEqual(t, n, 3)
+	assert.IsNotNil(t, err)
+}
+
+func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
+	n := 0
+
+	err := retry(func() error {
+		n++
+		panic("this wont work")
+	}, 3)
+
+	assert.IsEqual(t, n, 1)
 	assert.IsNotNil(t, err)
 }
 

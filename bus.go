@@ -120,9 +120,9 @@ func (b *bus) Subscribe(endpoint string) {
 	b.subscribers = append(b.subscribers, subscription{endpoint, ""})
 }
 
-func (b *bus) handle(m Message) error {
+func (b *bus) handle(m Message) (err error) {
 	n := m.Headers[headers.MessageName]
-	err := retry(func() error {
+	err = retry(func() error {
 		return b.router.Receive(n, m)
 	}, 5)
 

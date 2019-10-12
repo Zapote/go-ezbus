@@ -1,7 +1,11 @@
 
 # go-ezbus 
 
-This is a package for communication between services in a distrubuted architecture. Using RabbitMQ as transport for messages.
+This is a package for communication between services in a distrubuted architecture. 
+
+Using RabbitMQ as transport for messages.
+
+More transports can and will (hopefully) be added
 
 [![CircleCI](https://circleci.com/gh/Zapote/go-ezbus/tree/master.svg?style=shield)](https://circleci.com/gh/Zapote/go-ezbus/tree/master)
 
