@@ -10,97 +10,28 @@ import (
 	"github.com/streadway/amqp"
 	ezbus "github.com/zapote/go-ezbus"
 	"github.com/zapote/go-ezbus/assert"
+	"github.com/zapote/go-ezbus/headers"
 )
 
-func TestDeclareQueue(t *testing.T) {
-	const queueName = "rabbitmq-test-queue"
-	cn, err := connection()
-	if err != nil {
-		t.Errorf("Failed to get connection: %s", err.Error())
-	}
-	ch, _ := cn.Channel()
+const (
+	queueName    = "rabbitmq-test-queue"
+	exchangeName = "rabbitmq-test-exchange"
+)
 
-	q, err := declareQueue(ch, queueName)
-	if err != nil {
-		t.Errorf("Failed to declare queue: %s", err.Error())
-	}
-
-	if q.Name != queueName {
-		t.Errorf("Queue name should be '%s' not %s", queueName, q.Name)
-	}
-
-	ch.QueueDelete(queueName, true, true, false)
-	ch.Close()
-	cn.Close()
-}
-
-func TestDeclareExchange(t *testing.T) {
-	const exchangeName = "rabbitmq-test-exchange"
-	cn, err := connection()
-	if err != nil {
-		t.Errorf("Failed to get connection: %s", err.Error())
-	}
-	ch, _ := cn.Channel()
-
-	err = declareExchange(ch, exchangeName)
-	if err != nil {
-		t.Errorf("Failed to declare exchange: %s", err.Error())
-	}
-
-	ch.ExchangeDelete(exchangeName, true, false)
-	ch.Close()
-	cn.Close()
-}
-
-func TestQueueBind(t *testing.T) {
-	const queueName = "rabbitmq-test-queue"
-	const exchangeName = "rabbitmq-test-exchange"
-	cn, err := connection()
-	if err != nil {
-		t.Errorf("Failed to get connection: %s", err.Error())
-	}
-
-	ch, _ := cn.Channel()
-
-	_, err = declareQueue(ch, queueName)
-	if err != nil {
-		t.Errorf("Failed to declare exchange: %s", err.Error())
-	}
-
-	err = declareExchange(ch, exchangeName)
-	if err != nil {
-		t.Errorf("Failed to declare exchange: %s", err.Error())
-	}
-
-	err = queueBind(ch, queueName, "", exchangeName)
-	if err != nil {
-		t.Errorf("Failed to bind to queue: %s", err.Error())
-	}
-
-}
+var cn *amqp.Connection
+var channel *amqp.Channel
 
 func TestPublishQueue(t *testing.T) {
-	const queueName = "rabbitmq-test-queue"
-	cn, err := connection()
-
-	if err != nil {
-		t.Errorf("Failed to get connection: %s", err.Error())
-	}
-
-	ch, _ := cn.Channel()
-	ch.QueuePurge(queueName, true)
-	_, err = declareQueue(ch, queueName)
-	if err != nil {
-		t.Errorf("Failed to declare exchange: %s", err.Error())
-	}
+	teardown := setup(t)
+	defer teardown(t)
 
 	h := make(map[string]string)
 	h["header-one"] = "test"
 	b := []byte("test-message")
 
-	cch, _ := consume(ch, queueName)
+	cch, _ := consume(channel, queueName)
 
-	publish(ch, ezbus.NewMessage(h, b), queueName, "")
+	publish(channel, ezbus.NewMessage(h, b), queueName, "")
 
 	delivery := <-cch
 
@@ -111,12 +42,55 @@ func TestPublishQueue(t *testing.T) {
 	delivery.Ack(false)
 }
 
-func connection() (*amqp.Connection, error) {
-	cn, err := amqp.Dial("amqp:localhost")
+func TestPublishExchange(t *testing.T) {
+	teardown := setup(t)
+	defer teardown(t)
 
+	queueBind(channel, queueName, "", exchangeName)
+
+	h := make(map[string]string)
+	h[headers.MessageName] = "test-message"
+	b := []byte("test-message")
+
+	cch, _ := consume(channel, queueName)
+
+	publish(channel, ezbus.NewMessage(h, b), "", exchangeName)
+
+	delivery := <-cch
+
+	assert.IsEqual(t, delivery.ContentType, "application/json")
+	assert.IsEqual(t, string(delivery.Body), "test-message")
+
+	delivery.Ack(false)
+}
+
+func setup(t *testing.T) func(t *testing.T) {
+	cn, err := amqp.Dial("amqp:localhost")
 	if err != nil {
-		return nil, fmt.Errorf("Dial: %s", err)
+		panic(fmt.Sprintf("Dial: %s", err))
 	}
 
-	return cn, nil
+	channel, err = cn.Channel()
+	if err != nil {
+		panic(fmt.Sprintf("Channel: %s", err))
+	}
+
+	declareQueue(channel, queueName)
+	if err != nil {
+		panic(fmt.Sprintf("DeclareQueue: %s", err))
+	}
+
+	declareExchange(channel, exchangeName)
+	if err != nil {
+		panic(fmt.Sprintf("DeclareExchange: %s", err))
+	}
+
+	channel.QueuePurge(queueName, true)
+
+	return func(t *testing.T) {
+		channel.QueueDelete(queueName, false, false, true)
+		channel.ExchangeDelete(exchangeName, false, true)
+		channel.Close()
+		cn.Close()
+	}
 }
