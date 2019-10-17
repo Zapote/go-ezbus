@@ -9,4 +9,5 @@ const (
 	SendingModule   = "EzBus.SendingModule"
 	Destination     = "EzBus.Destination"
 	TimeSent        = "EzBus.TimeSent"
+	Error           = "EzBus.Error"
 )

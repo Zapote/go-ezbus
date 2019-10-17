@@ -104,8 +104,9 @@ func (b *bus) Publish(msg interface{}) error {
 	}
 
 	t := reflect.TypeOf(msg)
+	h := getHeaders(t, "")
 
-	return b.broker.Publish(NewMessage(getHeaders(t, ""), json))
+	return b.broker.Publish(NewMessage(h, json))
 }
 
 //SubscribeMessage to a specific message from a publisher. Provide endpoint (queue) and name of the message to subscribe to.
@@ -130,7 +131,8 @@ func (b *bus) handle(m Message) error {
 		return nil
 	}
 
-	eq := fmt.Sprintf("%s.error", b.broker.Endpoint())
+	eq := fmt.Sprintf("%s-error", b.broker.Endpoint())
+	m.Headers[headers.Error] = err.Error()
 	log.Println("Failed to handle message. Putting on error queue: ", eq)
 	return b.broker.Send(eq, m)
 }

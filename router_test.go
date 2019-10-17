@@ -79,5 +79,4 @@ func TestMiddlewareCalledInCorrectOrder(t *testing.T) {
 	assert.IsEqual(t, h, 2)
 	assert.IsEqual(t, c4, 3)
 	assert.IsEqual(t, c2, 4)
-
 }
