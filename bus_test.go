@@ -42,14 +42,14 @@ func TestSendHasCorrectHeaders(t *testing.T) {
 	assert.IsEqual(t, m.Headers[headers.Destination], "queueName")
 }
 
-func TestReceive(t *testing.T) {
+func TestHandle(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	handled := false
 
 	rtr.Handle("FakeMessage", func(m Message) error {
 		handled = true
-		wg.Done()
+		defer wg.Done()
 		return nil
 	})
 
@@ -61,14 +61,14 @@ func TestReceive(t *testing.T) {
 	assert.IsTrue(t, handled, "Message should be handled")
 }
 
-func TestReceiveErrorShallRetryFiveTimes(t *testing.T) {
+func TestHandleErrorShallRetryFiveTimes(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(5)
 	n := 0
 
 	rtr.Handle("FakeMessage", func(m Message) error {
 		n++
-		wg.Done()
+		defer wg.Done()
 		return errors.New("Error in message")
 	})
 
@@ -79,14 +79,31 @@ func TestReceiveErrorShallRetryFiveTimes(t *testing.T) {
 	assert.IsEqual(t, n, 5)
 }
 
-func TestReceiveErrorShallSendToErrorQueue(t *testing.T) {
+func TestHandleErrorSendsToErrorQueue(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(5)
 	n := 0
 	rtr.Handle("FakeMessage", func(m Message) error {
 		n++
-		wg.Done()
+		defer wg.Done()
 		return errors.New("Error in message")
+	})
+
+	go b.Go()
+	defer b.Stop()
+	broker.invoke()
+	wg.Wait()
+	assert.IsEqual(t, broker.sentDst, fmt.Sprintf("%s.error", broker.Endpoint()))
+}
+
+func TestHandlePanicSendsToErrorQueue(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	n := 0
+	rtr.Handle("FakeMessage", func(m Message) error {
+		n++
+		defer wg.Done()
+		panic("Panicking")
 	})
 
 	go b.Go()

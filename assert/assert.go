@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// IsEqual checks if values are equal. Received value (a) and expected value(b)
+// IsEqual checks if values are equal actual value (a) and expected value(b)
 func IsEqual(t *testing.T, a interface{}, b interface{}) {
 	if a == b {
 		return

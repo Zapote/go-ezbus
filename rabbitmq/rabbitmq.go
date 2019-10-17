@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/streadway/amqp"
-	ezbus "github.com/zapote/go-ezbus"
+	"github.com/zapote/go-ezbus"
 )
 
 func declareQueue(c *amqp.Channel, name string) (amqp.Queue, error) {

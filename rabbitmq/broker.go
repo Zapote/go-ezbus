@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/streadway/amqp"
-	ezbus "github.com/zapote/go-ezbus"
+	"github.com/zapote/go-ezbus"
 )
 
 //Broker RabbitMQ implementation of ezbus.broker interaface.

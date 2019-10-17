@@ -121,9 +121,9 @@ func (b *bus) Subscribe(endpoint string) {
 	b.subscribers = append(b.subscribers, subscription{endpoint, ""})
 }
 
-func (b *bus) handle(m Message) error {
+func (b *bus) handle(m Message) (err error) {
 	n := m.Headers[headers.MessageName]
-	err := retry(func() error {
+	err = retry(func() error {
 		return b.router.Receive(n, m)
 	}, 5)
 
@@ -135,12 +135,6 @@ func (b *bus) handle(m Message) error {
 	m.Headers[headers.Error] = err.Error()
 	log.Println("Failed to handle message. Putting on error queue: ", eq)
 	return b.broker.Send(eq, m)
-}
-
-func recoverHandle(m Message) {
-	if err := recover(); err != nil {
-		log.Printf("Failed to handle '%s': %s", m.Headers[headers.MessageName], err)
-	}
 }
 
 func getHeaders(msgType reflect.Type, dst string) map[string]string {
