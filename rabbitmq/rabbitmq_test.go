@@ -9,8 +9,8 @@ import (
 
 	"github.com/streadway/amqp"
 	ezbus "github.com/zapote/go-ezbus"
-	"github.com/zapote/go-ezbus/assert"
 	"github.com/zapote/go-ezbus/headers"
+	"gotest.tools/assert"
 )
 
 const (
@@ -35,9 +35,9 @@ func TestPublishQueue(t *testing.T) {
 
 	delivery := <-cch
 
-	assert.IsEqual(t, delivery.ContentType, "application/json")
-	assert.IsEqual(t, "test-message", string(delivery.Body))
-	assert.IsEqual(t, "test", delivery.Headers["header-one"])
+	assert.Equal(t, delivery.ContentType, "application/json")
+	assert.Equal(t, "test-message", string(delivery.Body))
+	assert.Equal(t, "test", delivery.Headers["header-one"])
 
 	delivery.Ack(false)
 }
@@ -58,8 +58,8 @@ func TestPublishExchange(t *testing.T) {
 
 	delivery := <-cch
 
-	assert.IsEqual(t, delivery.ContentType, "application/json")
-	assert.IsEqual(t, string(delivery.Body), "test-message")
+	assert.Equal(t, delivery.ContentType, "application/json")
+	assert.Equal(t, string(delivery.Body), "test-message")
 
 	delivery.Ack(false)
 }

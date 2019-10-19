@@ -4,35 +4,35 @@ import (
 	"log"
 	"testing"
 
-	"github.com/zapote/go-ezbus/assert"
+	"gotest.tools/assert"
 )
 
 var r = NewRouter()
 
 func TestInvokeCorrectHandler(t *testing.T) {
-	var h = false
+	var handled = false
 
 	r.Handle("TestMessage", func(m Message) error {
-		h = true
+		handled = true
 		return nil
 	})
 
 	r.Receive("TestMessage", NewMessage(nil, nil))
 
-	assert.IsTrue(t, h, "Message should be handled")
+	assert.Check(t, handled, "Message should be handled")
 }
 
 func TestNoInvokationOfHandler(t *testing.T) {
-	h := false
+	handled := false
 
 	r.Handle("TestMessage", func(m Message) error {
-		h = true
+		handled = true
 		return nil
 	})
 
 	r.Receive("NoMessageToHandle", NewMessage(nil, nil))
 
-	assert.IsFalse(t, h, "Message should not be handled")
+	assert.Check(t, !handled, "Message should not be handled")
 }
 
 func TestMiddlewareCalledInCorrectOrder(t *testing.T) {
@@ -74,9 +74,9 @@ func TestMiddlewareCalledInCorrectOrder(t *testing.T) {
 
 	r.Receive("TestMessage", NewMessage(nil, nil))
 
-	assert.IsEqual(t, c1, 0)
-	assert.IsEqual(t, c3, 1)
-	assert.IsEqual(t, h, 2)
-	assert.IsEqual(t, c4, 3)
-	assert.IsEqual(t, c2, 4)
+	assert.Equal(t, c1, 0)
+	assert.Equal(t, c3, 1)
+	assert.Equal(t, h, 2)
+	assert.Equal(t, c4, 3)
+	assert.Equal(t, c2, 4)
 }

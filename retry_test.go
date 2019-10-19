@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/zapote/go-ezbus/assert"
+	"gotest.tools/assert"
 )
 
 func TestRetryRunsThreeAttempsOnError(t *testing.T) {
@@ -15,8 +15,8 @@ func TestRetryRunsThreeAttempsOnError(t *testing.T) {
 		return errors.New("this wont work")
 	}, 3)
 
-	assert.IsEqual(t, n, 3)
-	assert.IsNotNil(t, err)
+	assert.Equal(t, n, 3)
+	assert.Check(t, err != nil)
 }
 
 func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
@@ -27,8 +27,8 @@ func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
 		panic("this wont work")
 	}, 3)
 
-	assert.IsEqual(t, n, 1)
-	assert.IsNotNil(t, err)
+	assert.Equal(t, n, 1)
+	assert.Check(t, err != nil)
 }
 
 func TestRetryOnlyRunsOnceWhenSuccess(t *testing.T) {
@@ -39,6 +39,6 @@ func TestRetryOnlyRunsOnceWhenSuccess(t *testing.T) {
 		return nil
 	}, 3)
 
-	assert.IsEqual(t, n, 1)
-	assert.IsNil(t, err)
+	assert.Equal(t, n, 1)
+	assert.Check(t, err == nil)
 }

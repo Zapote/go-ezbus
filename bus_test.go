@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/zapote/go-ezbus/assert"
 	"github.com/zapote/go-ezbus/headers"
+	"gotest.tools/assert"
 )
 
 var broker = newFakeBroker()
@@ -17,29 +17,29 @@ var rtr = NewRouter()
 var b = NewBus(broker, rtr)
 
 func TestSendCorrectDestination(t *testing.T) {
-	b.Send("queue.name", msg)
-	assert.IsEqual(t, broker.sentDst, "queue.name")
+	b.Send("queue-name", msg)
+	assert.Equal(t, broker.sentDst, "queue-name")
 }
 
 func TestSendHasCorrectMessageBody(t *testing.T) {
-	b.Send("queueName", msg)
+	b.Send("queue-name", msg)
 
 	m := broker.sentMessage.(Message)
 
 	sent := FakeMessage{}
 	json.Unmarshal(m.Body, &sent)
 
-	assert.IsEqual(t, msg.ID, msg.ID)
+	assert.Equal(t, msg.ID, msg.ID)
 }
 
 func TestSendHasCorrectHeaders(t *testing.T) {
-	b.Send("queueName", msg)
+	b.Send("queue-name", msg)
 
 	m := broker.sentMessage.(Message)
 
-	assert.IsEqual(t, m.Headers[headers.MessageName], "FakeMessage")
-	assert.IsEqual(t, m.Headers[headers.MessageFullname], "ezbus.FakeMessage")
-	assert.IsEqual(t, m.Headers[headers.Destination], "queueName")
+	assert.Equal(t, m.Headers[headers.MessageName], "FakeMessage")
+	assert.Equal(t, m.Headers[headers.MessageFullname], "ezbus.FakeMessage")
+	assert.Equal(t, m.Headers[headers.Destination], "queueName")
 }
 
 func TestHandle(t *testing.T) {
@@ -58,7 +58,7 @@ func TestHandle(t *testing.T) {
 	broker.invoke()
 
 	wg.Wait()
-	assert.IsTrue(t, handled, "Message should be handled")
+	assert.Check(t, handled, "Message should be handled")
 }
 
 func TestHandleErrorShallRetryFiveTimes(t *testing.T) {
@@ -76,7 +76,7 @@ func TestHandleErrorShallRetryFiveTimes(t *testing.T) {
 	defer b.Stop()
 	broker.invoke()
 	wg.Wait()
-	assert.IsEqual(t, n, 5)
+	assert.Equal(t, n, 5)
 }
 
 func TestHandleErrorSendsToErrorQueue(t *testing.T) {
@@ -93,7 +93,7 @@ func TestHandleErrorSendsToErrorQueue(t *testing.T) {
 	defer b.Stop()
 	broker.invoke()
 	wg.Wait()
-	assert.IsEqual(t, broker.sentDst, fmt.Sprintf("%s.error", broker.Endpoint()))
+	assert.Equal(t, broker.sentDst, fmt.Sprintf("%s-error", broker.Endpoint()))
 }
 
 func TestHandlePanicSendsToErrorQueue(t *testing.T) {
@@ -110,7 +110,7 @@ func TestHandlePanicSendsToErrorQueue(t *testing.T) {
 	defer b.Stop()
 	broker.invoke()
 	wg.Wait()
-	assert.IsEqual(t, broker.sentDst, fmt.Sprintf("%s.error", broker.Endpoint()))
+	assert.Equal(t, broker.sentDst, fmt.Sprintf("%s-error", broker.Endpoint()))
 }
 
 type FakeMessage struct {
@@ -155,7 +155,7 @@ func (b *FakeBroker) Subscribe(queueName string, messageName string) error {
 }
 
 func (b *FakeBroker) Endpoint() string {
-	return "fake.broker.queue"
+	return "fake-broker"
 }
 
 func (b *FakeBroker) invoke() {
