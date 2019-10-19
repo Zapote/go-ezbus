@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	b := rabbitmq.NewBroker("")
+	b := rabbitmq.NewBroker()
 	r := ezbus.NewRouter()
 	bus := ezbus.NewBus(b, r)
 	bus.Go()
