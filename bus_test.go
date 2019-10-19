@@ -39,7 +39,7 @@ func TestSendHasCorrectHeaders(t *testing.T) {
 
 	assert.Equal(t, m.Headers[headers.MessageName], "FakeMessage")
 	assert.Equal(t, m.Headers[headers.MessageFullname], "ezbus.FakeMessage")
-	assert.Equal(t, m.Headers[headers.Destination], "queueName")
+	assert.Equal(t, m.Headers[headers.Destination], "queue-name")
 }
 
 func TestHandle(t *testing.T) {

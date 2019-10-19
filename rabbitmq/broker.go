@@ -19,8 +19,13 @@ type Broker struct {
 //NewBroker creates a RabbitMQ broker instance
 //Default url amqp://guest:guest@localhost:5672
 //Default prefetchCount 100
-func NewBroker(queueName string) *Broker {
-	b := Broker{queueName: queueName}
+func NewBroker(q ...string) *Broker {
+	var queue string
+	if len(q) > 0 {
+		queue = q[0]
+	}
+
+	b := Broker{queueName: queue}
 	b.cfg = &config{
 		url:                "amqp://guest:guest@localhost:5672",
 		prefetchCount:      100,
