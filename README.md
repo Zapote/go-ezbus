@@ -1,7 +1,7 @@
 
 # go-ezbus [![CircleCI](https://circleci.com/gh/Zapote/go-ezbus/tree/master.svg?style=shield)](https://circleci.com/gh/zapote/go-ezbus/tree/master) 
 
-<img src="logo.png" align="right" style="margin-left: 10px; max-width: 120px; height:auto" />
+<img src="logo.png" align="right" width="140" />
 
 This is a package for communication between software components. It helps with send, publish and receive messages.
 
