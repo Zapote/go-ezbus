@@ -1,27 +1,23 @@
 
-# go-ezbus [![CircleCI](https://circleci.com/gh/Zapote/go-ezbus/tree/master.svg?style=shield)](https://circleci.com/gh/Zapote/go-ezbus/tree/master)
+# go-ezbus [![CircleCI](https://circleci.com/gh/Zapote/go-ezbus/tree/master.svg?style=shield)](https://circleci.com/gh/zapote/go-ezbus/tree/master) 
 
-This is a package for communication between services in a distrubuted architecture. 
+<img src="logo.png" alt="Markdown Monster icon" style="float: right; margin-left: 10px; max-width: 120px; height:auto" />
+
+This is a package for communication between software components. It helps with send, publish and receive messages.
 
 Using RabbitMQ as transport for messages. More transports can and will (hopefully) be added
 
-###### Install
-`go get github.com/google/uuid`
+#### install
+`go get github.com/zapote/go-ezbus`
 
-#### pub/sub pattern
-```code
-                                       subscriber a
-                                      /
-                                     /
-                                    /
-command ----> publisher -- event --> subscriber b
-                                    \
-                                     \
-                                      \
-                                       subscriber c 
-```
+## idea
+Ezbus is great to use when working in a distrubuted system. Publish events when a software executes a command and let rest of the system now. 
 
-#### code example
+Plugin new software components without touching the existing one.
+
+Ezbus is super easy to use and will get you started in no time.
+
+## code example
 ```go
 //PlaceOrder command
 type PlaceOrder struct {
