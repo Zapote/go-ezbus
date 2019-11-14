@@ -30,7 +30,7 @@ func main() {
 	receiver := ezbus.NewBus(br, rr)
 	receiver.SubscribeMessage("sample-publisher", "greeting")
 	receiver.Subscribe("sample-publisher")
-	//receiver.Go()
+	receiver.Go()
 
 	//publish messsage
 	publisher.Publish(greeting{"hello ezbus"})
