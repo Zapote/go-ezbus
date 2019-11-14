@@ -13,7 +13,7 @@ Using RabbitMQ as transport for messages. More transports can and will (hopefull
 ## idea
 Ezbus is great to use when working in a distrubuted system. Publish events when a software executes a command and let rest of the system now. 
 
-Plugin new software components without touching the existing one.
+Plugin new software components in your architecture without touching the existing ones.
 
 Ezbus is super easy to use and will get you started in no time.
 
