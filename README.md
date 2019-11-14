@@ -3,7 +3,7 @@
 
 <img src="logo.png" align="right" width="140" />
 
-This is a package for communication between software components. It helps with send, publish and receive messages.
+This is a package for communication between software components. It makes sending, publishing and receiving messages super easy!
 
 Using RabbitMQ as transport for messages. More transports can and will (hopefully) be added
 
