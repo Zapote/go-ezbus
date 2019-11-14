@@ -123,11 +123,16 @@ func (b *bus) Subscribe(endpoint string) {
 
 func (b *bus) handle(m Message) (err error) {
 	n := m.Headers[headers.MessageName]
-	err = retry(func() error {
+	err = receive(func() error {
 		return b.router.Receive(n, m)
 	}, 5)
 
 	if err == nil {
+		return nil
+	}
+
+	if _, ok := err.(HandlerNotFoundErr); ok {
+		log.Printf("Message will be discarded: %s", err.Error())
 		return nil
 	}
 

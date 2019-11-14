@@ -19,7 +19,7 @@ func queueBind(c *amqp.Channel, queueName string, messageName string, exchange s
 	return c.QueueBind(queueName, messageName, exchange, false, nil)
 }
 
-func publish(c *amqp.Channel, m ezbus.Message, dst string, exchange string) error {
+func publish(c *amqp.Channel, m ezbus.Message, key string, exchange string) error {
 	if c == nil {
 		return fmt.Errorf("channel is nil")
 	}
@@ -30,7 +30,7 @@ func publish(c *amqp.Channel, m ezbus.Message, dst string, exchange string) erro
 		headers[key] = value
 	}
 
-	return c.Publish(exchange, dst, false, false,
+	return c.Publish(exchange, key, false, false,
 		amqp.Publishing{
 			ContentType:  "application/json",
 			Headers:      headers,

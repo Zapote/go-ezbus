@@ -12,6 +12,10 @@ type greeting struct {
 	Text string `json:"text"`
 }
 
+type greeting2 struct {
+	Text string `json:"text"`
+}
+
 func main() {
 	//setup publisher
 	bp := rabbitmq.NewBroker("sample-publisher")
@@ -24,11 +28,13 @@ func main() {
 	rr := ezbus.NewRouter()
 	rr.Handle("greeting", handler)
 	receiver := ezbus.NewBus(br, rr)
+	receiver.SubscribeMessage("sample-publisher", "greeting")
 	receiver.Subscribe("sample-publisher")
-	receiver.Go()
+	//receiver.Go()
 
 	//publish messsage
 	publisher.Publish(greeting{"hello ezbus"})
+	publisher.Publish(greeting2{"hello ezbus"})
 
 	forever := make(chan (struct{}))
 	<-forever

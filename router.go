@@ -2,13 +2,22 @@ package ezbus
 
 import "fmt"
 
+//HandlerNotFoundErr is returned when handler is not found
+type HandlerNotFoundErr struct {
+	MessageName string
+}
+
+func (e HandlerNotFoundErr) Error() string {
+	return fmt.Sprintf("no handler found for message %s", e.MessageName)
+}
+
 //MessageHandler func for handling messsages
 type MessageHandler = func(m Message) error
 
-//Middleware for router message handling
+//Middleware for router message handling pipeline
 type Middleware = func(next MessageHandler) MessageHandler
 
-//Router routes message to correct MessageHandler func.
+//Router routes message to correct MessageHandler func
 type Router interface {
 	Handle(messageName string, h MessageHandler)
 	Middleware(mw Middleware)
@@ -43,7 +52,7 @@ func (r *router) Middleware(mw Middleware) {
 func (r *router) Receive(n string, m Message) error {
 	handler, ok := r.handlers[n]
 	if !ok {
-		return fmt.Errorf("No handler found for message namned '%s'", n)
+		return HandlerNotFoundErr{n}
 	}
 
 	l := len(r.middlewares) - 1

@@ -10,7 +10,7 @@ import (
 func TestRetryRunsThreeAttempsOnError(t *testing.T) {
 	n := 0
 
-	err := retry(func() error {
+	err := receive(func() error {
 		n++
 		return errors.New("this wont work")
 	}, 3)
@@ -22,9 +22,21 @@ func TestRetryRunsThreeAttempsOnError(t *testing.T) {
 func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
 	n := 0
 
-	err := retry(func() error {
+	err := receive(func() error {
 		n++
 		panic("this wont work")
+	}, 3)
+
+	assert.Equal(t, n, 1)
+	assert.Check(t, err != nil)
+}
+
+func TestRetryRunsOnlyOneAttempOnHandlerNotFound(t *testing.T) {
+	n := 0
+
+	err := receive(func() error {
+		n++
+		return HandlerNotFoundErr{}
 	}, 3)
 
 	assert.Equal(t, n, 1)
@@ -34,7 +46,7 @@ func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
 func TestRetryOnlyRunsOnceWhenSuccess(t *testing.T) {
 	n := 0
 
-	err := retry(func() error {
+	err := receive(func() error {
 		n++
 		return nil
 	}, 3)

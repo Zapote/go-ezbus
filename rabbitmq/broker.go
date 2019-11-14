@@ -6,6 +6,7 @@ import (
 
 	"github.com/streadway/amqp"
 	"github.com/zapote/go-ezbus"
+	"github.com/zapote/go-ezbus/headers"
 )
 
 //Broker RabbitMQ implementation of ezbus.broker interaface.
@@ -45,8 +46,8 @@ func (b *Broker) Send(dst string, m ezbus.Message) error {
 
 //Publish publishes message on exhange
 func (b *Broker) Publish(m ezbus.Message) error {
-	//msgName := m.Headers[ezbus.MessageName]
-	err := publish(b.channel, m, "", b.queueName)
+	key := m.Headers[headers.MessageName]
+	err := publish(b.channel, m, key, b.queueName)
 	if err != nil {
 		return fmt.Errorf("Publish: %s", err)
 	}
