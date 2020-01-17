@@ -28,6 +28,7 @@ func main() {
 	rr := ezbus.NewRouter()
 	rr.Handle("greeting", handler)
 	receiver := ezbus.NewBus(br, rr)
+	receiver.EnableLog()
 	receiver.SubscribeMessage("sample-publisher", "greeting")
 	receiver.Subscribe("sample-publisher")
 	receiver.Go()
