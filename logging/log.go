@@ -23,5 +23,7 @@ func (service *Service) Logf(format string, params ...interface{}) {
 
 // Log message to log
 func (service *Service) Log(msg string) {
-	log.Print(msg)
+	if service.enabled {
+		log.Print(msg)
+	}
 }
