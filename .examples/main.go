@@ -29,7 +29,7 @@ func main() {
 	rr.Handle("greeting", handler)
 	receiver := ezbus.NewBus(br, rr)
 	receiver.SubscribeMessage("sample-publisher", "greeting")
-	receiver.Subscribe("sample-publisher")
+	//receiver.Subscribe("sample-publisher")
 	receiver.Go()
 
 	//publish messsage

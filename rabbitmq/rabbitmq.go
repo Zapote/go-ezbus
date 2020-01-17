@@ -12,7 +12,7 @@ func declareQueue(c *amqp.Channel, name string) (amqp.Queue, error) {
 }
 
 func declareExchange(c *amqp.Channel, name string) error {
-	return c.ExchangeDeclare(name, amqp.ExchangeFanout, true, false, false, false, nil)
+	return c.ExchangeDeclare(name, amqp.ExchangeTopic, true, false, false, false, nil)
 }
 
 func queueBind(c *amqp.Channel, queueName string, messageName string, exchange string) error {

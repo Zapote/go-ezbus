@@ -84,11 +84,11 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	}
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
-	_, err = declareQueue(b.channel, fmt.Sprintf("%s%serror", b.queueName, b.cfg.queueNameDelimiter))
+	queueErr, err := declareQueue(b.channel, fmt.Sprintf("%s%serror", b.queueName, b.cfg.queueNameDelimiter))
 	if err != nil {
 		return fmt.Errorf("Declare Error Queue : %s", err)
 	}
-	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
+	log.Printf("Queue declared. (%q %d messages, %d consumers)", queueErr.Name, queue.Messages, queue.Consumers)
 
 	err = declareExchange(b.channel, b.queueName)
 	if err != nil {
@@ -134,6 +134,9 @@ func (b *Broker) Endpoint() string {
 
 //Subscribe to messages from specific endpoint
 func (b *Broker) Subscribe(endpoint string, messageName string) error {
+	if messageName == "" {
+		messageName = "#"
+	}
 	return queueBind(b.channel, b.Endpoint(), messageName, endpoint)
 }
 
