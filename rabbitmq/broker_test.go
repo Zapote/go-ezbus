@@ -22,8 +22,9 @@ func TestSend(t *testing.T) {
 	b.Start(func(m ezbus.Message) error {
 		return nil
 	})
-
-	m := ezbus.NewMessage(make(map[string]string), []byte("message-body-sent"))
+	h := make(map[string]string)
+	h[headers.MessageName] = "validation-message"
+	m := ezbus.NewMessage(h, []byte("message-body-sent"))
 
 	err := b.Send("send-validator", m)
 	if err != nil {
@@ -40,11 +41,10 @@ func TestPublish(t *testing.T) {
 	b.Start(func(m ezbus.Message) error {
 		return nil
 	})
-
 	v := &validator{}
 	v.queue = "publish-validator"
 	v.start()
-	v.b.Subscribe("test-publisher", "validation-message-published")
+	v.b.Subscribe("test-publisher", "validation-message")
 
 	h := make(map[string]string)
 	h[headers.MessageName] = "validation-message"
@@ -69,7 +69,10 @@ type validator struct {
 
 func (v *validator) start() {
 	v.b = NewBroker(v.queue)
-	v.b.Start(v.handler())
+	err := v.b.Start(v.handler())
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (v *validator) waitOne() {
