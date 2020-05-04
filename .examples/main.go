@@ -30,12 +30,10 @@ func main() {
 	receiver := ezbus.NewBus(br, rr)
 	receiver.EnableLog()
 	receiver.SubscribeMessage("sample-publisher", "greeting")
-	//receiver.Subscribe("sample-publisher")
 	receiver.Go()
 
 	//publish messsage
 	publisher.Publish(greeting{"hello ezbus"})
-	publisher.Publish(greeting2{"hello ezbus"})
 
 	forever := make(chan (struct{}))
 	<-forever
