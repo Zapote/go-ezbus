@@ -11,7 +11,7 @@ Using RabbitMQ as transport for messages. More transports can and will (hopefull
 `go get github.com/zapote/go-ezbus`
 
 ## idea
-Ezbus is great to use when working in a distrubuted system. Publish events when a software executes a command and let rest of the system now. 
+Ezbus is great to use when working in a distrubuted system. Publish events when a software executes a command and let rest of the system know. 
 
 Plugin new software components in your architecture without touching the existing ones.
 
@@ -33,8 +33,8 @@ type OrderPlaced struct {
 r := ezbus.NewRouter()
 
 //register handler for message PlaceOrder
-r.Handle("PlaceOrder", func(message) {
-    PlaceOrder po
+r.Handle("PlaceOrder", func(message ezbus.Message) {
+    var po PlaceOrder
     json.Unmarshal(m.Body, &po) 
     bus.Publish(OrderPlaced {po.ID})
 })
