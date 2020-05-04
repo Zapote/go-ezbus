@@ -9,12 +9,13 @@ import (
 	"github.com/zapote/go-ezbus/headers"
 )
 
-//Broker RabbitMQ implementation of ezbus.broker interaface.
+//Broker RabbitMQ implementation of ezbus.broker interface.
 type Broker struct {
-	queueName string
-	conn      *amqp.Connection
-	channel   *amqp.Channel
-	cfg       *config
+	queueName      string
+	conn           *amqp.Connection
+	sendChannel    *amqp.Channel
+	receiveChannel *amqp.Channel
+	cfg            *config
 }
 
 //NewBroker creates a RabbitMQ broker instance
@@ -37,7 +38,7 @@ func NewBroker(q ...string) *Broker {
 
 //Send sends a message to given destination
 func (b *Broker) Send(dst string, m ezbus.Message) error {
-	err := publish(b.channel, m, dst, "")
+	err := publish(b.sendChannel, m, dst, "")
 	if err != nil {
 		return fmt.Errorf("Send: %s", err)
 	}
@@ -47,7 +48,7 @@ func (b *Broker) Send(dst string, m ezbus.Message) error {
 //Publish publishes message on exhange
 func (b *Broker) Publish(m ezbus.Message) error {
 	key := m.Headers[headers.MessageName]
-	err := publish(b.channel, m, key, b.queueName)
+	err := publish(b.sendChannel, m, key, b.queueName)
 	if err != nil {
 		return fmt.Errorf("Publish: %s", err)
 	}
@@ -63,40 +64,44 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	}
 
 	b.conn = cn
-	b.channel, err = b.conn.Channel()
-
+	b.sendChannel, err = b.conn.Channel()
 	if err != nil {
-		return fmt.Errorf("Channel: %s", err)
+		return fmt.Errorf("Send channel: %s", err)
+	}
+
+	b.receiveChannel, err = b.conn.Channel()
+	if err != nil {
+		return fmt.Errorf("Receive channel: %s", err)
 	}
 
 	if b.Endpoint() == "" {
 		return nil
 	}
 
-	err = b.channel.Qos(b.cfg.prefetchCount, 0, false)
+	err = b.receiveChannel.Qos(b.cfg.prefetchCount, 0, false)
 	if err != nil {
 		return fmt.Errorf("Qos: %s", err)
 	}
 
-	queue, err := declareQueue(b.channel, b.queueName)
+	queue, err := declareQueue(b.receiveChannel, b.queueName)
 	if err != nil {
 		return fmt.Errorf("Declare Queue : %s", err)
 	}
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
-	queueErr, err := declareQueue(b.channel, fmt.Sprintf("%s%serror", b.queueName, b.cfg.queueNameDelimiter))
+	queueErr, err := declareQueue(b.receiveChannel, fmt.Sprintf("%s%serror", b.queueName, b.cfg.queueNameDelimiter))
 	if err != nil {
 		return fmt.Errorf("Declare Error Queue : %s", err)
 	}
 	log.Printf("Queue declared. (%q %d messages, %d consumers)", queueErr.Name, queue.Messages, queue.Consumers)
 
-	err = declareExchange(b.channel, b.queueName)
+	err = declareExchange(b.receiveChannel, b.queueName)
 	if err != nil {
 		return fmt.Errorf("Declare Exchange : %s", err)
 	}
 	log.Printf("Exchange declared. (%q)", b.queueName)
 
-	msgs, err := b.channel.Consume(queue.Name, "", false, false, false, false, nil)
+	msgs, err := b.receiveChannel.Consume(queue.Name, "", false, false, false, false, nil)
 
 	if err != nil {
 		return fmt.Errorf("Queue Consume: %s", err)
@@ -106,7 +111,7 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 			headers := extractHeaders(d.Headers)
 			m := ezbus.Message{Headers: headers, Body: d.Body}
 			handle(m)
-			b.channel.Ack(d.DeliveryTag, false)
+			b.receiveChannel.Ack(d.DeliveryTag, false)
 		}
 	}()
 	log.Print("RabbitMQ broker started")
@@ -115,9 +120,13 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 
 //Stop stops the RabbitMQ broker
 func (b *Broker) Stop() error {
-	err := b.channel.Close()
+	err := b.sendChannel.Close()
 	if err != nil {
-		return fmt.Errorf("Channel Close: %s", err)
+		return fmt.Errorf("Send channel Close: %s", err)
+	}
+	err = b.receiveChannel.Close()
+	if err != nil {
+		return fmt.Errorf("Receive channel Close: %s", err)
 	}
 	err = b.conn.Close()
 	if err != nil {
@@ -137,7 +146,7 @@ func (b *Broker) Subscribe(endpoint string, messageName string) error {
 	if messageName == "" {
 		messageName = "#"
 	}
-	return queueBind(b.channel, b.Endpoint(), messageName, endpoint)
+	return queueBind(b.receiveChannel, b.Endpoint(), messageName, endpoint)
 }
 
 //Configure RabbitMQ.
