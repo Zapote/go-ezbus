@@ -7,6 +7,12 @@ type HandlerNotFoundErr struct {
 	MessageName string
 }
 
+//IsHandlerNotFoundErr checks if error is HandlerNotFoundErr
+func IsHandlerNotFoundErr(err error) bool {
+	_, ok := err.(HandlerNotFoundErr)
+	return ok
+}
+
 func (e HandlerNotFoundErr) Error() string {
 	return fmt.Sprintf("no handler found for message %s", e.MessageName)
 }

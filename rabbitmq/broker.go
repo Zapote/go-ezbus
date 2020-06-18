@@ -93,7 +93,7 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	if err != nil {
 		return fmt.Errorf("Declare Error Queue : %s", err)
 	}
-	log.Printf("Queue declared. (%q %d messages, %d consumers)", queueErr.Name, queue.Messages, queue.Consumers)
+	log.Printf("Queue declared. (%q %d messages)", queueErr.Name, queueErr.Messages)
 
 	err = declareExchange(b.receiveChannel, b.queueName)
 	if err != nil {

@@ -150,9 +150,8 @@ func (b *bus) handle(m Message) (err error) {
 		return nil
 	}
 
-	if _, ok := err.(HandlerNotFoundErr); ok {
+	if IsHandlerNotFoundErr(err) {
 		b.logger.Logf("Message will be discarded: %s", err.Error())
-
 		return nil
 	}
 
