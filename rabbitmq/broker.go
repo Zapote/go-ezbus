@@ -2,11 +2,11 @@ package rabbitmq
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/streadway/amqp"
 	"github.com/zapote/go-ezbus"
 	"github.com/zapote/go-ezbus/headers"
+	"github.com/zapote/go-ezbus/logger"
 )
 
 //Broker RabbitMQ implementation of ezbus.broker interface.
@@ -87,19 +87,19 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 	if err != nil {
 		return fmt.Errorf("Declare Queue : %s", err)
 	}
-	log.Printf("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
+	logger.Infof("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
 	queueErr, err := declareQueue(b.receiveChannel, fmt.Sprintf("%s%serror", b.queueName, b.cfg.queueNameDelimiter))
 	if err != nil {
 		return fmt.Errorf("Declare Error Queue : %s", err)
 	}
-	log.Printf("Queue declared. (%q %d messages)", queueErr.Name, queueErr.Messages)
+	logger.Infof("Queue declared. (%q %d messages)", queueErr.Name, queueErr.Messages)
 
 	err = declareExchange(b.receiveChannel, b.queueName)
 	if err != nil {
 		return fmt.Errorf("Declare Exchange : %s", err)
 	}
-	log.Printf("Exchange declared. (%q)", b.queueName)
+	logger.Infof("Exchange declared. (%q)", b.queueName)
 
 	msgs, err := b.receiveChannel.Consume(queue.Name, "", false, false, false, false, nil)
 
@@ -114,7 +114,7 @@ func (b *Broker) Start(handle ezbus.MessageHandler) error {
 			b.receiveChannel.Ack(d.DeliveryTag, false)
 		}
 	}()
-	log.Print("RabbitMQ broker started")
+	logger.Info("RabbitMQ broker started")
 	return nil
 }
 

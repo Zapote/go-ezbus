@@ -2,10 +2,11 @@ package ezbus
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/zapote/go-ezbus/logger"
 )
 
-func receive(fn func() error, attempts int) (err error) {
+func receive(messageName string, fn func() error, attempts int) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Recovered from panic: %v", r)
@@ -18,7 +19,7 @@ func receive(fn func() error, attempts int) (err error) {
 			case HandlerNotFoundErr:
 				return v
 			default:
-				log.Printf("Attempt failed: %s", err.Error())
+				logger.Errorf("Attempt #%d, message '%s' failed: %s", (i + 1), messageName, err.Error())
 				continue
 			}
 		}

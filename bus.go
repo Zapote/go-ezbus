@@ -7,9 +7,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/zapote/go-ezbus/logging"
-
 	"github.com/zapote/go-ezbus/headers"
+	"github.com/zapote/go-ezbus/logger"
 )
 
 type subscription struct {
@@ -25,12 +24,6 @@ type Bus interface {
 	Sender
 	Publisher
 	Subscriber
-	EnableLogger
-}
-
-// EnableLogger interface
-type EnableLogger interface {
-	EnableLog()
 }
 
 // Sender interface
@@ -59,7 +52,6 @@ type bus struct {
 	broker      Broker
 	router      Router
 	subscribers []subscription
-	logger      *logging.Service
 }
 
 // NewBus creates a bus instance for sending and receiving messages.
@@ -68,14 +60,9 @@ func NewBus(b Broker, r Router) Bus {
 		broker:      b,
 		router:      r,
 		subscribers: make([]subscription, 0),
-		logger:      &logging.Service{},
 	}
 
 	return &bus
-}
-
-func (b *bus) EnableLog() {
-	b.logger.Enable()
 }
 
 //Go starts the bus and listens to incoming messages.
@@ -91,15 +78,13 @@ func (b *bus) Go() error {
 		}
 	}
 
-	b.logger.Log("Bus is on the Go!")
-
+	logger.Info("Bus is on the Go!")
 	return nil
 }
 
 //Stop the bus and any incoming messages.
 func (b *bus) Stop() error {
-	b.logger.Log("Bus stopped.")
-
+	logger.Info("Bus stopped.")
 	return b.broker.Stop()
 }
 
@@ -128,21 +113,19 @@ func (b *bus) Publish(msg interface{}) error {
 
 //SubscribeMessage to a specific message from a publisher. Provide endpoint (queue) and name of the message to subscribe to.
 func (b *bus) SubscribeMessage(endpoint string, messageName string) {
-	b.logger.Logf("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint)
-
+	logger.Infof("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint)
 	b.subscribers = append(b.subscribers, subscription{endpoint, messageName})
 }
 
 //Subscribe to all messages from a publisher. Provide endpoint (queue).
 func (b *bus) Subscribe(endpoint string) {
-	b.logger.Logf("Subscribing to all messages from endpoint '%s'", endpoint)
-
+	logger.Infof("Subscribing to all messages from endpoint '%s'", endpoint)
 	b.subscribers = append(b.subscribers, subscription{endpoint, ""})
 }
 
 func (b *bus) handle(m Message) (err error) {
 	n := m.Headers[headers.MessageName]
-	err = receive(func() error {
+	err = receive(n, func() error {
 		return b.router.Receive(n, m)
 	}, 5)
 
@@ -151,14 +134,14 @@ func (b *bus) handle(m Message) (err error) {
 	}
 
 	if IsHandlerNotFoundErr(err) {
-		b.logger.Logf("Message will be discarded: %s", err.Error())
+		logger.Debugf("Message will be discarded: %s", err.Error())
 		return nil
 	}
 
 	eq := fmt.Sprintf("%s-error", b.broker.Endpoint())
 	m.Headers[headers.Error] = err.Error()
 
-	b.logger.Logf("Failed to handle message. Putting on error queue: %s\n", eq)
+	logger.Errorf("Failed to handle message. Putting on error queue: %s\n", eq)
 
 	return b.broker.Send(eq, m)
 }
@@ -176,9 +159,9 @@ func (b *bus) getHeaders(msgType reflect.Type, dst string) map[string]string {
 	n, err := os.Hostname()
 	if err == nil {
 		h[headers.SendingHost] = n
+	} else {
+		logger.Warnf("Failed to get hostname: %v", err)
 	}
-
-	b.logger.Logf("Failed to get hostname: %v", err)
 
 	return h
 }
