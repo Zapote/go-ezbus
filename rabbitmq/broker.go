@@ -139,30 +139,32 @@ func (b *Broker) connect() error {
 
 	go func() {
 		closeErr := <-notifyClose
-		if closeErr != nil {
-			logger.Warnf("Connection closed: %s", closeErr.Error())
-			attempts := 60
-			for i := 0; i < attempts; i++ {
-				logger.Infof("Reconnecting... attempt %d of %d", i+1, attempts)
-
-				if err := b.connect(); err != nil {
-					logger.Warnf("Failed to connect: %s", err.Error())
-					time.Sleep(time.Second * 5)
-					continue
-				}
-				logger.Infof("Reconnect succeeded")
-
-				if err = b.consume(); err != nil {
-					logger.Warnf("Failed to consume: %s", err.Error())
-					continue
-				}
-				logger.Infof("Consume succeeded")
-
-				return
-			}
-
-			panic("Unable to reconnect to broker. Giving up after many attempts.")
+		if closeErr == nil {
+			return
 		}
+
+		logger.Warnf("Connection closed: %s", closeErr.Error())
+		attempts := 60
+		for i := 0; i < attempts; i++ {
+			logger.Infof("Reconnecting... attempt %d of %d", i+1, attempts)
+
+			if err := b.connect(); err != nil {
+				logger.Warnf("Failed to connect: %s", err.Error())
+				time.Sleep(time.Second * 5)
+				continue
+			}
+			logger.Infof("Reconnect succeeded")
+
+			if err = b.consume(); err != nil {
+				logger.Warnf("Failed to consume: %s", err.Error())
+				continue
+			}
+			logger.Infof("Consume succeeded")
+
+			return
+		}
+
+		panic("Unable to reconnect to broker. Giving up after many attempts.")
 	}()
 
 	//create sending channel
