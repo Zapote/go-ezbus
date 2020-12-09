@@ -7,9 +7,9 @@ import (
 
 var level LogLevel = InfoLevel
 var (
-	debugLogger *log.Logger = log.New(os.Stdout, "DEBUG:", log.Ldate|log.Ltime)
-	infoLogger  *log.Logger = log.New(os.Stdout, "INFO:", log.Ldate|log.Ltime)
-	warnLogger  *log.Logger = log.New(os.Stdout, "WARN:", log.Ldate|log.Ltime)
+	debugLogger *log.Logger = log.New(os.Stdout, "\033[37mDEBUG:", log.Ldate|log.Ltime)
+	infoLogger  *log.Logger = log.New(os.Stdout, "\033[32mINFO:", log.Ldate|log.Ltime)
+	warnLogger  *log.Logger = log.New(os.Stdout, "\033[33mWARN:", log.Ldate|log.Ltime)
 	errorLogger *log.Logger = log.New(os.Stderr, "ERR:", log.Ldate|log.Ltime)
 )
 

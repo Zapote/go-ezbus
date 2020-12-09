@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
+	"time"
 
 	"github.com/zapote/go-ezbus"
 	"github.com/zapote/go-ezbus/logger"
@@ -14,19 +14,17 @@ type greeting struct {
 	Text string `json:"text"`
 }
 
-type greeting2 struct {
-	Text string `json:"text"`
-}
-
 func main() {
-
 	logger.SetLevel(logger.DebugLevel)
 
 	//setup publisher
 	bp := rabbitmq.NewBroker("sample-publisher")
 	rp := ezbus.NewRouter()
 	publisher := ezbus.NewBus(bp, rp)
-	publisher.Go()
+	err := publisher.Go()
+	if err != nil {
+		log.Fatalf("Start publisher: %s", err.Error())
+	}
 
 	//setup receiver
 	br := rabbitmq.NewBroker("sample-receiver")
@@ -36,16 +34,22 @@ func main() {
 	receiver.SubscribeMessage("sample-publisher", "greeting")
 	receiver.Go()
 
+	for {
+		err := publisher.Publish(greeting{"hello ezbus"})
+		if err != nil {
+			logger.Error(err.Error())
+		} else {
+			logger.Info("Message published")
+		}
+		time.Sleep(time.Second * 3)
+	}
+	receiver.Stop()
 	//publish messsage
-	publisher.Publish(greeting{"hello ezbus"})
-
-	forever := make(chan (struct{}))
-	<-forever
 }
 
 func handler(m ezbus.Message) error {
 	var g greeting
 	json.Unmarshal(m.Body, &g)
-	log.Println(g.Text)
-	return fmt.Errorf("Did not work: %d", 1337)
+	logger.Info(g.Text)
+	return nil
 }
