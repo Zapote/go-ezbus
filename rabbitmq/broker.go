@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/zapote/go-ezbus"
 	"github.com/zapote/go-ezbus/headers"
 	"github.com/zapote/go-ezbus/logger"
@@ -241,9 +241,18 @@ func (b *Broker) declareQueues() error {
 }
 
 func extractHeaders(h amqp.Table) map[string]string {
-	headers := make(map[string]string)
+	headers := make(map[string]string, len(h))
 	for k, v := range h {
-		headers[k] = v.(string)
+		switch t := v.(type) {
+		case string:
+			headers[k] = t
+		case []byte:
+			headers[k] = string(t)
+		case nil:
+			headers[k] = ""
+		default:
+			headers[k] = fmt.Sprint(t)
+		}
 	}
 	return headers
 }
