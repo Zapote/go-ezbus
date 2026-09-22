@@ -3,7 +3,7 @@ module github.com/zapote/go-ezbus
 go 1.27.1
 
 require (
-	github.com/streadway/amqp v1.0.0
+	github.com/rabbitmq/amqp091-go v1.15.0
 	gotest.tools v2.2.0+incompatible
 )
 

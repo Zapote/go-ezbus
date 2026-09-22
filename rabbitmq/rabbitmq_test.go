@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	ezbus "github.com/zapote/go-ezbus"
 	"github.com/zapote/go-ezbus/headers"
 	"gotest.tools/assert"
