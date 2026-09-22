@@ -1,6 +1,7 @@
 package ezbus
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -10,7 +11,7 @@ import (
 func TestRetryRunsThreeAttempsOnError(t *testing.T) {
 	n := 0
 
-	err := receive("handle", func() error {
+	err := receive(context.Background(), "handle", func() error {
 		n++
 		return errors.New("this wont work")
 	}, 3)
@@ -22,7 +23,7 @@ func TestRetryRunsThreeAttempsOnError(t *testing.T) {
 func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
 	n := 0
 
-	err := receive("handle", func() error {
+	err := receive(context.Background(), "handle", func() error {
 		n++
 		panic("this wont work")
 	}, 3)
@@ -34,7 +35,7 @@ func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
 func TestRetryRunsOnlyOneAttempOnHandlerNotFound(t *testing.T) {
 	n := 0
 
-	err := receive("handle", func() error {
+	err := receive(context.Background(), "handle", func() error {
 		n++
 		return HandlerNotFoundErr{}
 	}, 3)
@@ -46,7 +47,7 @@ func TestRetryRunsOnlyOneAttempOnHandlerNotFound(t *testing.T) {
 func TestRetryOnlyRunsOnceWhenSuccess(t *testing.T) {
 	n := 0
 
-	err := receive("handle", func() error {
+	err := receive(context.Background(), "handle", func() error {
 		n++
 		return nil
 	}, 3)

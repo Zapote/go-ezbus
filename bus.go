@@ -106,8 +106,16 @@ func (b *bus) SendContext(ctx context.Context, dst string, msg interface{}) erro
 		return err
 	}
 	t := reflect.TypeOf(msg)
-	m := NewMessage(b.getHeaders(t, dst), json).WithContext(ctx)
-	return b.broker.Send(dst, m)
+	h := b.getHeaders(t, dst)
+
+	ctx, span := startPublish(ctx, dst, h)
+	defer span.End()
+
+	if err = b.broker.Send(dst, NewMessage(h, json).WithContext(ctx)); err != nil {
+		failSpan(span, err)
+	}
+
+	return err
 }
 
 //Publish message to subscribers
@@ -125,7 +133,14 @@ func (b *bus) PublishContext(ctx context.Context, msg interface{}) error {
 	t := reflect.TypeOf(msg)
 	h := b.getHeaders(t, "")
 
-	return b.broker.Publish(NewMessage(h, json).WithContext(ctx))
+	ctx, span := startPublish(ctx, t.Name(), h)
+	defer span.End()
+
+	if err = b.broker.Publish(NewMessage(h, json).WithContext(ctx)); err != nil {
+		failSpan(span, err)
+	}
+
+	return err
 }
 
 //SubscribeMessage to a specific message from a publisher. Provide endpoint (queue) and name of the message to subscribe to.
@@ -142,7 +157,12 @@ func (b *bus) Subscribe(endpoint string) {
 
 func (b *bus) handle(m Message) (err error) {
 	n := m.Headers[headers.MessageName]
-	err = receive(n, func() error {
+
+	ctx, span := startProcess(b.broker.Endpoint(), n, m.Headers)
+	defer span.End()
+	m = m.WithContext(ctx)
+
+	err = receive(ctx, n, func() error {
 		return b.router.Receive(n, m)
 	}, 5)
 
@@ -155,8 +175,11 @@ func (b *bus) handle(m Message) (err error) {
 		return nil
 	}
 
+	failAfterAttempts(span, err)
+
 	eq := fmt.Sprintf("%s-error", b.broker.Endpoint())
 	m.Headers[headers.Error] = err.Error()
+	markErrorQueued(ctx, m.Headers)
 
 	logger.Errorf("Failed to handle message. Putting on error queue: %s\n", eq)
 

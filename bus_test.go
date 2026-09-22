@@ -191,3 +191,9 @@ func TestSendWithoutContext(t *testing.T) {
 	assert.Assert(t, m.Context() != nil)
 	assert.Equal(t, nil, m.Context().Value(ctxKey{}))
 }
+
+func (b *FakeBroker) invokeWith(h map[string]string) {
+	<-b.started
+	h[headers.MessageName] = "FakeMessage"
+	b.handle(NewMessage(h, nil))
+}
