@@ -1,17 +1,12 @@
 package logger
 
 import (
-	"log"
-	"os"
+	"context"
+	"fmt"
+	"log/slog"
 )
 
 var level LogLevel = InfoLevel
-var (
-	debugLogger *log.Logger = log.New(os.Stdout, "DEBUG:", log.Ldate|log.Ltime)
-	infoLogger  *log.Logger = log.New(os.Stdout, "INFO:", log.Ldate|log.Ltime)
-	warnLogger  *log.Logger = log.New(os.Stdout, "WARN:", log.Ldate|log.Ltime)
-	errorLogger *log.Logger = log.New(os.Stderr, "ERR:", log.Ldate|log.Ltime)
-)
 
 //LogLevel for logger
 type LogLevel int
@@ -31,51 +26,73 @@ const (
 	ErrorLevel
 )
 
-func write(logger *log.Logger, l LogLevel, format string, v ...interface{}) {
+func (l LogLevel) slogLevel() slog.Level {
+	switch l {
+	case DebugLevel:
+		return slog.LevelDebug
+	case WarnLevel:
+		return slog.LevelWarn
+	case ErrorLevel:
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
+func write(l LogLevel, msg string) {
 	if l < level {
 		return
 	}
-	logger.Printf(format, v...)
+
+	slog.Default().Log(context.Background(), l.slogLevel(), msg)
+}
+
+func writef(l LogLevel, format string, v ...interface{}) {
+	if l < level {
+		return
+	}
+
+	write(l, fmt.Sprintf(format, v...))
 }
 
 //Debug log
 func Debug(msg string) {
-	write(debugLogger, DebugLevel, "%s", msg)
+	write(DebugLevel, msg)
 }
 
 //Debugf log with format
 func Debugf(format string, v ...interface{}) {
-	write(debugLogger, DebugLevel, format, v...)
+	writef(DebugLevel, format, v...)
 }
 
 //Info log
 func Info(msg string) {
-	write(infoLogger, InfoLevel, "%s", msg)
+	write(InfoLevel, msg)
 }
 
 //Infof log with format
 func Infof(format string, v ...interface{}) {
-	write(infoLogger, InfoLevel, format, v...)
+	writef(InfoLevel, format, v...)
 }
 
 //Warn log
 func Warn(msg string) {
-	write(warnLogger, WarnLevel, "%s", msg)
+	write(WarnLevel, msg)
 }
 
 //Warnf log with format
 func Warnf(format string, v ...interface{}) {
-	write(warnLogger, WarnLevel, format, v...)
+	writef(WarnLevel, format, v...)
 }
 
 //Error log
 func Error(msg string) {
-	write(errorLogger, ErrorLevel, "%s", msg)
+	write(ErrorLevel, msg)
 }
 
 //Errorf log with format
 func Errorf(format string, v ...interface{}) {
-	write(errorLogger, ErrorLevel, format, v...)
+	writef(ErrorLevel, format, v...)
 }
 
 //SetLevel of logging: DebugLevel, InfoLevel, WarnLevel, ErrorLevel. Default InfoLevel
