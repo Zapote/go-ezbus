@@ -1,7 +1,6 @@
 package rabbitmq
 
 import (
-	"context"
 	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -31,7 +30,7 @@ func publish(c *amqp.Channel, m ezbus.Message, key string, exchange string) erro
 		headers[key] = value
 	}
 
-	return c.PublishWithContext(context.Background(), exchange, key, false, false,
+	return c.PublishWithContext(m.Context(), exchange, key, false, false,
 		amqp.Publishing{
 			ContentType:  "application/json",
 			Headers:      headers,

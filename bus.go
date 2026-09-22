@@ -1,6 +1,7 @@
 package ezbus
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -26,14 +27,19 @@ type Bus interface {
 	Subscriber
 }
 
-// Sender interface
+// Sender sends a message to a destination. SendContext carries ctx
+// along with the message; Send is SendContext with context.Background().
 type Sender interface {
 	Send(dst string, msg interface{}) error
+	SendContext(ctx context.Context, dst string, msg interface{}) error
 }
 
-// Publisher interface
+// Publisher publishes a message to subscribers. PublishContext carries
+// ctx along with the message; Publish is PublishContext with
+// context.Background().
 type Publisher interface {
 	Publish(msg interface{}) error
+	PublishContext(ctx context.Context, msg interface{}) error
 }
 
 //Subscriber interface
@@ -90,16 +96,27 @@ func (b *bus) Stop() error {
 
 // Send message to destination.
 func (b *bus) Send(dst string, msg interface{}) error {
+	return b.SendContext(context.Background(), dst, msg)
+}
+
+// SendContext sends a message to given destination, carrying ctx along.
+func (b *bus) SendContext(ctx context.Context, dst string, msg interface{}) error {
 	json, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 	t := reflect.TypeOf(msg)
-	return b.broker.Send(dst, NewMessage(b.getHeaders(t, dst), json))
+	m := NewMessage(b.getHeaders(t, dst), json).WithContext(ctx)
+	return b.broker.Send(dst, m)
 }
 
 //Publish message to subscribers
 func (b *bus) Publish(msg interface{}) error {
+	return b.PublishContext(context.Background(), msg)
+}
+
+// PublishContext publishes a message to subscribers, carrying ctx along.
+func (b *bus) PublishContext(ctx context.Context, msg interface{}) error {
 	json, err := json.Marshal(msg)
 	if err != nil {
 		return err
@@ -108,7 +125,7 @@ func (b *bus) Publish(msg interface{}) error {
 	t := reflect.TypeOf(msg)
 	h := b.getHeaders(t, "")
 
-	return b.broker.Publish(NewMessage(h, json))
+	return b.broker.Publish(NewMessage(h, json).WithContext(ctx))
 }
 
 //SubscribeMessage to a specific message from a publisher. Provide endpoint (queue) and name of the message to subscribe to.
