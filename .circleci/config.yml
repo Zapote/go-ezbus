@@ -1,26 +1,42 @@
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
-        - image: circleci/golang
-        - image: rabbitmq:3-alpine
-          ports:
-            - "5672:5672"
-    working_directory: /go/src/github.com/zapote/go-ezbus
-     
+      - image: cimg/go:1.27
+      - image: rabbitmq:3-alpine
+
     steps:
       - checkout
-      
-      - run: 
+
+      - run:
           name: Get go deps
-          command: go get -v -t -d ./...
-      - run: sleep 3
+          command: go mod download
+
+      - run:
+          name: Vet
+          command: go vet ./...
+
+      - run:
+          name: Wait for RabbitMQ
+          command: |
+            for i in $(seq 1 60); do
+              (echo > /dev/tcp/localhost/5672) >/dev/null 2>&1 && exit 0
+              sleep 2
+            done
+            echo "RabbitMQ did not start in time"
+            exit 1
+
       - run:
           name: Unit tests
-          command: | 
-            go get -u github.com/jstemmer/go-junit-report
-            mkdir ~/test-results
-            mkdir ~/test-results/junit
-            go test ./... -v 2>&1 | go-junit-report > ~/test-results/junit/results.xml
+          command: |
+            go install github.com/jstemmer/go-junit-report/v2@latest
+            mkdir -p test-results/junit
+            go test ./... -v 2>&1 | go-junit-report -set-exit-code > test-results/junit/results.xml
+
       - store_test_results:
-          path: ~/test-results
+          path: test-results
+
+workflows:
+  build:
+    jobs:
+      - build
