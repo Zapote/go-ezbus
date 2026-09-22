@@ -1,6 +1,7 @@
 package ezbus
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -163,4 +164,30 @@ func (b *FakeBroker) invoke() {
 	m := make(map[string]string)
 	m[headers.MessageName] = "FakeMessage"
 	b.handle(NewMessage(m, nil))
+}
+
+func TestSendContextCarriesContext(t *testing.T) {
+	ctx := context.WithValue(context.Background(), ctxKey{}, "value")
+
+	b.SendContext(ctx, "queue-name", msg)
+
+	m := broker.sentMessage.(Message)
+	assert.Equal(t, "value", m.Context().Value(ctxKey{}))
+}
+
+func TestPublishContextCarriesContext(t *testing.T) {
+	ctx := context.WithValue(context.Background(), ctxKey{}, "value")
+
+	b.PublishContext(ctx, msg)
+
+	m := broker.sentMessage.(Message)
+	assert.Equal(t, "value", m.Context().Value(ctxKey{}))
+}
+
+func TestSendWithoutContext(t *testing.T) {
+	b.Send("queue-name", msg)
+
+	m := broker.sentMessage.(Message)
+	assert.Assert(t, m.Context() != nil)
+	assert.Equal(t, nil, m.Context().Value(ctxKey{}))
 }
