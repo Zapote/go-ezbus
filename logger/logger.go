@@ -40,7 +40,7 @@ func write(logger *log.Logger, l LogLevel, format string, v ...interface{}) {
 
 //Debug log
 func Debug(msg string) {
-	Debugf(msg)
+	write(debugLogger, DebugLevel, "%s", msg)
 }
 
 //Debugf log with format
@@ -50,7 +50,7 @@ func Debugf(format string, v ...interface{}) {
 
 //Info log
 func Info(msg string) {
-	Infof(msg)
+	write(infoLogger, InfoLevel, "%s", msg)
 }
 
 //Infof log with format
@@ -60,7 +60,7 @@ func Infof(format string, v ...interface{}) {
 
 //Warn log
 func Warn(msg string) {
-	Warnf(msg)
+	write(warnLogger, WarnLevel, "%s", msg)
 }
 
 //Warnf log with format
@@ -70,7 +70,7 @@ func Warnf(format string, v ...interface{}) {
 
 //Error log
 func Error(msg string) {
-	Errorf(msg)
+	write(errorLogger, ErrorLevel, "%s", msg)
 }
 
 //Errorf log with format
