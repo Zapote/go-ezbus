@@ -10,7 +10,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	ezbus "github.com/zapote/go-ezbus"
 	"github.com/zapote/go-ezbus/headers"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestRetryRunsThreeAttempsOnError(t *testing.T) {

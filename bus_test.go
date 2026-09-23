@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/zapote/go-ezbus/headers"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 var broker = newFakeBroker()
