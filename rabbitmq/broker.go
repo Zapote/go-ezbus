@@ -10,7 +10,7 @@ import (
 	"github.com/zapote/go-ezbus/logger"
 )
 
-//Broker RabbitMQ implementation of ezbus.broker interface.
+// Broker RabbitMQ implementation of ezbus.broker interface.
 type Broker struct {
 	queueName      string
 	handler        ezbus.MessageHandler
@@ -21,9 +21,9 @@ type Broker struct {
 	receiveChannel *amqp.Channel
 }
 
-//NewBroker creates a RabbitMQ broker instance
-//Default url amqp://guest:guest@localhost:5672
-//Default prefetchCount 100
+// NewBroker creates a RabbitMQ broker instance
+// Default url amqp://guest:guest@localhost:5672
+// Default prefetchCount 100
 func NewBroker(q ...string) *Broker {
 	var queue string
 
@@ -41,7 +41,7 @@ func NewBroker(q ...string) *Broker {
 	return &b
 }
 
-//Send sends a message to given destination
+// Send sends a message to given destination
 func (b *Broker) Send(dst string, m ezbus.Message) error {
 
 	err := publish(b.sendChannel, m, dst, "")
@@ -51,7 +51,7 @@ func (b *Broker) Send(dst string, m ezbus.Message) error {
 	return err
 }
 
-//Publish publishes message on exhange
+// Publish publishes message on exhange
 func (b *Broker) Publish(m ezbus.Message) error {
 	key := m.Headers[headers.MessageName]
 	ch, err := b.conn.Channel()
@@ -67,7 +67,7 @@ func (b *Broker) Publish(m ezbus.Message) error {
 	return err
 }
 
-//Start starts the RabbitMQ broker and declars queue, and exchange.
+// Start starts the RabbitMQ broker and declars queue, and exchange.
 func (b *Broker) Start(h ezbus.MessageHandler) error {
 	b.handler = h
 
@@ -87,7 +87,7 @@ func (b *Broker) Start(h ezbus.MessageHandler) error {
 	return nil
 }
 
-//Stop stops the RabbitMQ broker
+// Stop stops the RabbitMQ broker
 func (b *Broker) Stop() error {
 	err := b.sendChannel.Close()
 	if err != nil {
@@ -109,12 +109,12 @@ func (b *Broker) Stop() error {
 	return nil
 }
 
-//Endpoint returns name of the queue
+// Endpoint returns name of the queue
 func (b *Broker) Endpoint() string {
 	return b.queueName
 }
 
-//Subscribe to messages from specific endpoint
+// Subscribe to messages from specific endpoint
 func (b *Broker) Subscribe(endpoint string, messageName string) error {
 	if messageName == "" {
 		messageName = "#"
@@ -122,7 +122,7 @@ func (b *Broker) Subscribe(endpoint string, messageName string) error {
 	return queueBind(b.receiveChannel, b.Endpoint(), messageName, endpoint)
 }
 
-//Configure RabbitMQ.
+// Configure RabbitMQ.
 func (b *Broker) Configure() Configurer {
 	return b.cfg
 }

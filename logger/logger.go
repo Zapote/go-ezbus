@@ -8,7 +8,7 @@ import (
 
 var level LogLevel = InfoLevel
 
-//LogLevel for logger
+// LogLevel for logger
 type LogLevel int
 
 func (l LogLevel) String() string {
@@ -55,47 +55,47 @@ func writef(l LogLevel, format string, v ...interface{}) {
 	write(l, fmt.Sprintf(format, v...))
 }
 
-//Debug log
+// Debug log
 func Debug(msg string) {
 	write(DebugLevel, msg)
 }
 
-//Debugf log with format
+// Debugf log with format
 func Debugf(format string, v ...interface{}) {
 	writef(DebugLevel, format, v...)
 }
 
-//Info log
+// Info log
 func Info(msg string) {
 	write(InfoLevel, msg)
 }
 
-//Infof log with format
+// Infof log with format
 func Infof(format string, v ...interface{}) {
 	writef(InfoLevel, format, v...)
 }
 
-//Warn log
+// Warn log
 func Warn(msg string) {
 	write(WarnLevel, msg)
 }
 
-//Warnf log with format
+// Warnf log with format
 func Warnf(format string, v ...interface{}) {
 	writef(WarnLevel, format, v...)
 }
 
-//Error log
+// Error log
 func Error(msg string) {
 	write(ErrorLevel, msg)
 }
 
-//Errorf log with format
+// Errorf log with format
 func Errorf(format string, v ...interface{}) {
 	writef(ErrorLevel, format, v...)
 }
 
-//SetLevel of logging: DebugLevel, InfoLevel, WarnLevel, ErrorLevel. Default InfoLevel
+// SetLevel of logging: DebugLevel, InfoLevel, WarnLevel, ErrorLevel. Default InfoLevel
 func SetLevel(l LogLevel) {
 	level = l
 }

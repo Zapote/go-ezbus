@@ -19,7 +19,7 @@ type subscription struct {
 
 type subscriptions []subscription
 
-//Bus for publishing, sending and receiving messages
+// Bus for publishing, sending and receiving messages
 type Bus interface {
 	StarterStopper
 	Sender
@@ -42,13 +42,13 @@ type Publisher interface {
 	PublishContext(ctx context.Context, msg interface{}) error
 }
 
-//Subscriber interface
+// Subscriber interface
 type Subscriber interface {
 	Subscribe(endpoint string)
 	SubscribeMessage(endpoint string, messageName string)
 }
 
-//StarterStopper interface
+// StarterStopper interface
 type StarterStopper interface {
 	Go() error
 	Stop() error
@@ -71,7 +71,7 @@ func NewBus(b Broker, r Router) Bus {
 	return &bus
 }
 
-//Go starts the bus and listens to incoming messages.
+// Go starts the bus and listens to incoming messages.
 func (b *bus) Go() error {
 	err := b.broker.Start(b.handle)
 	if err != nil {
@@ -88,7 +88,7 @@ func (b *bus) Go() error {
 	return nil
 }
 
-//Stop the bus and any incoming messages.
+// Stop the bus and any incoming messages.
 func (b *bus) Stop() error {
 	logger.Info("Bus stopped.")
 	return b.broker.Stop()
@@ -118,7 +118,7 @@ func (b *bus) SendContext(ctx context.Context, dst string, msg interface{}) erro
 	return err
 }
 
-//Publish message to subscribers
+// Publish message to subscribers
 func (b *bus) Publish(msg interface{}) error {
 	return b.PublishContext(context.Background(), msg)
 }
@@ -143,13 +143,13 @@ func (b *bus) PublishContext(ctx context.Context, msg interface{}) error {
 	return err
 }
 
-//SubscribeMessage to a specific message from a publisher. Provide endpoint (queue) and name of the message to subscribe to.
+// SubscribeMessage to a specific message from a publisher. Provide endpoint (queue) and name of the message to subscribe to.
 func (b *bus) SubscribeMessage(endpoint string, messageName string) {
 	logger.Infof("Subscribing to message '%s' from endpoint '%s'", messageName, endpoint)
 	b.subscribers = append(b.subscribers, subscription{endpoint, messageName})
 }
 
-//Subscribe to all messages from a publisher. Provide endpoint (queue).
+// Subscribe to all messages from a publisher. Provide endpoint (queue).
 func (b *bus) Subscribe(endpoint string) {
 	logger.Infof("Subscribing to all messages from endpoint '%s'", endpoint)
 	b.subscribers = append(b.subscribers, subscription{endpoint, ""})
