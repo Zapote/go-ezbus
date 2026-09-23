@@ -1,6 +1,6 @@
 package headers
 
-//Constants for EzBus message headers
+// Constants for EzBus message headers
 const (
 	MessageFullname = "EzBus.MessageFullname"
 	MessageName     = "EzBus.MessageName"

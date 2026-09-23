@@ -1,6 +1,6 @@
 package rabbitmq
 
-//Configurer for rabbitmq
+// Configurer for rabbitmq
 type Configurer interface {
 	URL(string)
 	PrefetchCount(int)

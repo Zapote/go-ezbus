@@ -2,7 +2,7 @@ package ezbus
 
 import "context"
 
-//Message in EzBus
+// Message in EzBus
 type Message struct {
 	Headers map[string]string
 	Body    []byte
@@ -10,13 +10,13 @@ type Message struct {
 	ctx context.Context
 }
 
-//NewMessage creates a new Message instance
+// NewMessage creates a new Message instance
 // Using h as headers and b as body
 func NewMessage(h map[string]string, b []byte) Message {
 	return Message{Headers: h, Body: b}
 }
 
-//Context of the message. Background when the message carries none,
+// Context of the message. Background when the message carries none,
 // which is the case for messages built outside of Bus.
 func (m Message) Context() context.Context {
 	if m.ctx == nil {
@@ -25,7 +25,7 @@ func (m Message) Context() context.Context {
 	return m.ctx
 }
 
-//WithContext returns a copy of the message with ctx attached,
+// WithContext returns a copy of the message with ctx attached,
 // in the same way as http.Request.WithContext.
 func (m Message) WithContext(ctx context.Context) Message {
 	if ctx == nil {
