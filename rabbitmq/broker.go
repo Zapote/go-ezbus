@@ -21,24 +21,22 @@ type Broker struct {
 	receiveChannel *amqp.Channel
 }
 
-// NewBroker creates a RabbitMQ broker instance
-// Default url amqp://guest:guest@localhost:5672
-// Default prefetchCount 100
-func NewBroker(q ...string) *Broker {
-	var queue string
-
-	if len(q) > 0 {
-		queue = q[0]
-	}
-
-	b := Broker{queueName: queue, sendOnly: queue == ""}
-	b.cfg = &config{
+// NewBroker creates a RabbitMQ broker for queue. An empty queue gives a
+// broker that only sends. Options override the defaults: URL
+// amqp://guest:guest@localhost:5672, prefetch count 100 and queue name
+// delimiter "-".
+func NewBroker(queue string, opts ...Option) *Broker {
+	cfg := &config{
 		url:                "amqp://guest:guest@localhost:5672",
 		prefetchCount:      100,
 		queueNameDelimiter: "-",
 	}
 
-	return &b
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	return &Broker{queueName: queue, sendOnly: queue == "", cfg: cfg}
 }
 
 // Send sends a message to given destination
@@ -120,11 +118,6 @@ func (b *Broker) Subscribe(endpoint string, messageName string) error {
 		messageName = "#"
 	}
 	return queueBind(b.receiveChannel, b.Endpoint(), messageName, endpoint)
-}
-
-// Configure RabbitMQ.
-func (b *Broker) Configure() Configurer {
-	return b.cfg
 }
 
 func (b *Broker) connect() error {

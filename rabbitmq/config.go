@@ -1,11 +1,7 @@
 package rabbitmq
 
-// Configurer for rabbitmq
-type Configurer interface {
-	URL(string)
-	PrefetchCount(int)
-	QueueNameDelimiter(string)
-}
+// Option configures a Broker. Pass options to NewBroker.
+type Option func(*config)
 
 type config struct {
 	url                string
@@ -13,14 +9,26 @@ type config struct {
 	queueNameDelimiter string
 }
 
-func (c *config) URL(v string) {
-	c.url = v
+// WithURL sets the AMQP URL to connect to.
+// Default amqp://guest:guest@localhost:5672
+func WithURL(url string) Option {
+	return func(c *config) {
+		c.url = url
+	}
 }
 
-func (c *config) PrefetchCount(i int) {
-	c.prefetchCount = i
+// WithPrefetchCount sets how many unacknowledged messages the broker
+// takes at a time. Default 100.
+func WithPrefetchCount(n int) Option {
+	return func(c *config) {
+		c.prefetchCount = n
+	}
 }
 
-func (c *config) QueueNameDelimiter(v string) {
-	c.queueNameDelimiter = v
+// WithQueueNameDelimiter sets what goes between the queue name and the
+// error suffix, as in my-queue-error. Default "-".
+func WithQueueNameDelimiter(d string) Option {
+	return func(c *config) {
+		c.queueNameDelimiter = d
+	}
 }
