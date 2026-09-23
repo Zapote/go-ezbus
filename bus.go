@@ -111,7 +111,10 @@ func (b *bus) SendContext(ctx context.Context, dst string, msg interface{}) erro
 	ctx, span := startPublish(ctx, dst, h)
 	defer span.End()
 
-	if err = b.broker.Send(dst, NewMessage(h, json).WithContext(ctx)); err != nil {
+	start := time.Now()
+	err = b.broker.Send(dst, NewMessage(h, json).WithContext(ctx))
+	recordSend(ctx, operationSend, dst, start, err)
+	if err != nil {
 		failSpan(span, err)
 	}
 
@@ -136,7 +139,10 @@ func (b *bus) PublishContext(ctx context.Context, msg interface{}) error {
 	ctx, span := startPublish(ctx, t.Name(), h)
 	defer span.End()
 
-	if err = b.broker.Publish(NewMessage(h, json).WithContext(ctx)); err != nil {
+	start := time.Now()
+	err = b.broker.Publish(NewMessage(h, json).WithContext(ctx))
+	recordSend(ctx, operationPublish, t.Name(), start, err)
+	if err != nil {
 		failSpan(span, err)
 	}
 
@@ -157,27 +163,32 @@ func (b *bus) Subscribe(endpoint string) {
 
 func (b *bus) handle(m Message) (err error) {
 	n := m.Headers[headers.MessageName]
+	queue := b.broker.Endpoint()
+	start := time.Now()
 
-	ctx, span := startProcess(b.broker.Endpoint(), n, m.Headers)
+	ctx, span := startProcess(queue, n, m.Headers)
 	defer span.End()
 	m = m.WithContext(ctx)
 
-	err = receive(ctx, n, func() error {
+	attempts, err := receive(ctx, n, func() error {
 		return b.router.Receive(n, m)
 	}, 5)
 
 	if err == nil {
+		recordProcess(ctx, queue, n, start, attempts, outcomeOK)
 		return nil
 	}
 
 	if IsHandlerNotFoundErr(err) {
 		logger.Debugf("Message will be discarded: %s", err.Error())
+		recordProcess(ctx, queue, n, start, attempts, outcomeDiscarded)
 		return nil
 	}
 
 	failAfterAttempts(span, err)
+	recordProcess(ctx, queue, n, start, attempts, outcomeErrorQueue)
 
-	eq := fmt.Sprintf("%s-error", b.broker.Endpoint())
+	eq := fmt.Sprintf("%s-error", queue)
 	m.Headers[headers.Error] = err.Error()
 	markErrorQueued(ctx, m.Headers)
 
