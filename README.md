@@ -48,3 +48,20 @@ bus := ezbus.NewBus(b, r)
 //Go!
 bus.Go()
 ```
+## Traces and metrics
+
+The bus is instrumented with the OpenTelemetry API. Install a tracer provider and a meter provider in the service and it starts reporting. Without them everything is a no-op.
+
+Traces: `SendContext` and `PublishContext` start a producer span and write `traceparent` into the message headers. A handler gets the consumer span through `m.Context()`. Pass it on to database calls, HTTP requests and new messages, or the trace stops there.
+
+Metrics:
+
+| Name | Kind | What |
+| --- | --- | --- |
+| `messaging.client.sent.messages` | counter | sends and publishes, by destination and outcome |
+| `messaging.client.operation.duration` | histogram, s | time to send or publish |
+| `messaging.client.consumed.messages` | counter | handled messages, by queue, message name and outcome: `ok`, `error_queue` or `discarded` |
+| `messaging.process.duration` | histogram, s | time to handle a message, all attempts included |
+| `ezbus.process.attempts` | histogram | attempts it took; five means the message ended on the error queue |
+
+Queue lengths are not here. RabbitMQ reports them itself through `rabbitmq_prometheus`.

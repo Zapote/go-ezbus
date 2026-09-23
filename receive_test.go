@@ -11,7 +11,7 @@ import (
 func TestRetryRunsThreeAttempsOnError(t *testing.T) {
 	n := 0
 
-	err := receive(context.Background(), "handle", func() error {
+	_, err := receive(context.Background(), "handle", func() error {
 		n++
 		return errors.New("this wont work")
 	}, 3)
@@ -23,7 +23,7 @@ func TestRetryRunsThreeAttempsOnError(t *testing.T) {
 func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
 	n := 0
 
-	err := receive(context.Background(), "handle", func() error {
+	_, err := receive(context.Background(), "handle", func() error {
 		n++
 		panic("this wont work")
 	}, 3)
@@ -35,7 +35,7 @@ func TestRetryRunsOnlyOneAttempOnPanic(t *testing.T) {
 func TestRetryRunsOnlyOneAttempOnHandlerNotFound(t *testing.T) {
 	n := 0
 
-	err := receive(context.Background(), "handle", func() error {
+	_, err := receive(context.Background(), "handle", func() error {
 		n++
 		return HandlerNotFoundErr{}
 	}, 3)
@@ -47,11 +47,26 @@ func TestRetryRunsOnlyOneAttempOnHandlerNotFound(t *testing.T) {
 func TestRetryOnlyRunsOnceWhenSuccess(t *testing.T) {
 	n := 0
 
-	err := receive(context.Background(), "handle", func() error {
+	_, err := receive(context.Background(), "handle", func() error {
 		n++
 		return nil
 	}, 3)
 
 	assert.Equal(t, n, 1)
+	assert.Check(t, err == nil)
+}
+
+func TestRetryReturnsTheAttemptCount(t *testing.T) {
+	n := 0
+
+	attempts, err := receive(context.Background(), "handle", func() error {
+		n++
+		if n < 3 {
+			return errors.New("not yet")
+		}
+		return nil
+	}, 5)
+
+	assert.Equal(t, 3, attempts)
 	assert.Check(t, err == nil)
 }
