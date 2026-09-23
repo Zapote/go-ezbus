@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 var r = NewRouter()

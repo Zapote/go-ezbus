@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestExtractHeadersHandlesAllValueTypes(t *testing.T) {

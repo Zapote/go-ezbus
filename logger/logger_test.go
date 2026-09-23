@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func capture(t *testing.T) *bytes.Buffer {
