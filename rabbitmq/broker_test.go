@@ -18,7 +18,7 @@ func TestSend(t *testing.T) {
 	v.queue = "send-validator"
 	v.start()
 
-	b := NewBroker()
+	b := NewBroker("")
 	b.Start(func(m ezbus.Message) error {
 		return nil
 	})

@@ -40,7 +40,7 @@ r.Handle("PlaceOrder", func(message ezbus.Message) {
 })
 
 //create a rabbitmq broker
-b := rabbitmq.NewBroker("my-queue");
+b := rabbitmq.NewBroker("my-queue", rabbitmq.WithURL("amqp://guest:guest@localhost:5672"))
 
 //create the bus with router and broker
 bus := ezbus.NewBus(b, r)
