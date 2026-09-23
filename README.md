@@ -54,6 +54,8 @@ The bus is instrumented with the OpenTelemetry API. Install a tracer provider an
 
 Traces: `SendContext` and `PublishContext` start a producer span and write `traceparent` into the message headers. A handler gets the consumer span through `m.Context()`. Pass it on to database calls, HTTP requests and new messages, or the trace stops there.
 
+The library's own log lines about a message, failed attempts and the move to the error queue, are logged with the message context, so a slog handler that adds `trace_id` from the context puts them on the trace too.
+
 Metrics:
 
 | Name | Kind | What |
