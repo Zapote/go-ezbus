@@ -25,7 +25,7 @@ func receive(ctx context.Context, messageName string, fn func() error, limit int
 			case HandlerNotFoundErr:
 				return attempt, v
 			default:
-				logger.Errorf("Attempt #%d, message '%s' failed: %s", attempt, messageName, err.Error())
+				logger.ErrorContext(ctx, "attempt failed", "attempt", attempt, "message", messageName, "err", err)
 				recordAttempt(ctx, attempt, err)
 				continue
 			}

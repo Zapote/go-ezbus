@@ -180,7 +180,7 @@ func (b *bus) handle(m Message) (err error) {
 	}
 
 	if IsHandlerNotFoundErr(err) {
-		logger.Debugf("Message will be discarded: %s", err.Error())
+		logger.DebugContext(ctx, "message discarded, no handler", "message", n)
 		recordProcess(ctx, queue, n, start, attempts, outcomeDiscarded)
 		return nil
 	}
@@ -192,7 +192,7 @@ func (b *bus) handle(m Message) (err error) {
 	m.Headers[headers.Error] = err.Error()
 	markErrorQueued(ctx, m.Headers)
 
-	logger.Errorf("Failed to handle message. Putting on error queue: %s\n", eq)
+	logger.ErrorContext(ctx, "message put on error queue", "message", n, "queue", eq, "err", err)
 
 	return b.broker.Send(eq, m)
 }
