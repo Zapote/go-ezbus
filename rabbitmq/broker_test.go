@@ -4,6 +4,8 @@ package rabbitmq
 	Needs a running RabbmitMQ on localhost:5672
 */
 import (
+	"fmt"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 	"sync"
 	"testing"
@@ -67,7 +69,12 @@ type validator struct {
 	queue string
 }
 
+// start expects exactly one message. The queue is purged first: a message
+// left behind by an earlier run would otherwise be delivered before the
+// test has counted it, and the wait group would go negative.
 func (v *validator) start() {
+	v.wg.Add(1)
+	purge(v.queue)
 	v.b = NewBroker(v.queue)
 	err := v.b.Start(v.handler())
 	if err != nil {
@@ -76,8 +83,26 @@ func (v *validator) start() {
 }
 
 func (v *validator) waitOne() {
-	v.wg.Add(1)
 	v.wg.Wait()
+}
+
+func purge(queue string) {
+	cn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	if err != nil {
+		panic(fmt.Sprintf("Dial: %s", err))
+	}
+	defer cn.Close()
+	ch, err := cn.Channel()
+	if err != nil {
+		panic(fmt.Sprintf("Channel: %s", err))
+	}
+	defer ch.Close()
+	if _, err := declareQueue(ch, queue); err != nil {
+		panic(fmt.Sprintf("DeclareQueue: %s", err))
+	}
+	if _, err := ch.QueuePurge(queue, false); err != nil {
+		panic(fmt.Sprintf("QueuePurge: %s", err))
+	}
 }
 
 func (v *validator) handler() ezbus.MessageHandler {
