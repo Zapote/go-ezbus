@@ -48,10 +48,13 @@ type Subscriber interface {
 	SubscribeMessage(endpoint string, messageName string)
 }
 
-// StarterStopper interface
+// StarterStopper interface. Stop and Shutdown both let the handler that is
+// running finish: Stop within the broker's drain timeout, Shutdown until
+// ctx ends.
 type StarterStopper interface {
 	Go() error
 	Stop() error
+	Shutdown(ctx context.Context) error
 }
 
 type bus struct {
@@ -88,10 +91,20 @@ func (b *bus) Go() error {
 	return nil
 }
 
-// Stop the bus and any incoming messages.
+// Stop takes no more messages and waits for the handler that is running,
+// within the broker's drain timeout.
 func (b *bus) Stop() error {
+	err := b.broker.Stop()
 	logger.Info("Bus stopped.")
-	return b.broker.Stop()
+	return err
+}
+
+// Shutdown takes no more messages and waits for the handler that is
+// running, until ctx ends.
+func (b *bus) Shutdown(ctx context.Context) error {
+	err := b.broker.Shutdown(ctx)
+	logger.Info("Bus stopped.")
+	return err
 }
 
 // Send message to destination.

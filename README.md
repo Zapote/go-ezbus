@@ -48,6 +48,18 @@ bus := ezbus.NewBus(b, r)
 //Go!
 bus.Go()
 ```
+## Stopping
+
+`Stop` takes no more messages and waits for the handler that is running, so its message is acked before the connection closes. Deliveries the broker had buffered go back on the queue in the order they came.
+
+```go
+bus.Stop()
+```
+
+`Stop` waits at most the drain timeout: 20 seconds, or what the broker is given with `rabbitmq.WithDrainTimeout`. Keep it below the time the process is given to exit, `terminationGracePeriodSeconds` in Kubernetes. `Shutdown(ctx)` waits until `ctx` ends instead.
+
+When the time runs out the connection is closed anyway, and the message in the handler is delivered again.
+
 ## Traces and metrics
 
 The bus is instrumented with the OpenTelemetry API. Install a tracer provider and a meter provider in the service and it starts reporting. Without them everything is a no-op.
