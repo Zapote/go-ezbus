@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/zapote/go-ezbus"
@@ -17,6 +20,9 @@ type greeting struct {
 func main() {
 	logger.SetLevel(logger.DebugLevel)
 
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
 	//setup publisher
 	bp := rabbitmq.NewBroker("sample-publisher")
 	rp := ezbus.NewRouter()
@@ -25,6 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Start publisher: %s", err.Error())
 	}
+	defer publisher.Stop()
 
 	//setup receiver
 	br := rabbitmq.NewBroker("sample-receiver")
@@ -32,10 +39,19 @@ func main() {
 	rr.Handle("greeting", handler)
 	receiver := ezbus.NewBus(br, rr)
 	receiver.SubscribeMessage("sample-publisher", "greeting")
-	receiver.Go()
 
-	for {
-		err := publisher.Publish(greeting{"hello ezbus"})
+	//publish messsage
+	go publish(ctx, publisher)
+
+	//take messages until the process is told to stop
+	if err := receiver.Run(ctx); err != nil {
+		log.Fatalf("Receiver: %s", err.Error())
+	}
+}
+
+func publish(ctx context.Context, publisher ezbus.Publisher) {
+	for ctx.Err() == nil {
+		err := publisher.PublishContext(ctx, greeting{"hello ezbus"})
 		if err != nil {
 			logger.Error(err.Error())
 		} else {
@@ -43,8 +59,6 @@ func main() {
 		}
 		time.Sleep(time.Second * 3)
 	}
-	receiver.Stop()
-	//publish messsage
 }
 
 func handler(m ezbus.Message) error {
