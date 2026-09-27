@@ -23,7 +23,9 @@ func WithURL(url string) Option {
 }
 
 // WithPrefetchCount sets how many unacknowledged messages the broker
-// takes at a time. Default 100.
+// takes at a time. The broker handles one message at a time, so a higher
+// count only keeps messages from the other consumers of the queue while
+// they wait their turn. Default 1.
 func WithPrefetchCount(n int) Option {
 	return func(c *config) {
 		c.prefetchCount = n

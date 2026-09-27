@@ -41,12 +41,12 @@ type Broker struct {
 
 // NewBroker creates a RabbitMQ broker for queue. An empty queue gives a
 // broker that only sends. Options override the defaults: URL
-// amqp://guest:guest@localhost:5672, prefetch count 100, queue name
+// amqp://guest:guest@localhost:5672, prefetch count 1, queue name
 // delimiter "-" and drain timeout 20 seconds.
 func NewBroker(queue string, opts ...Option) *Broker {
 	cfg := &config{
 		url:                "amqp://guest:guest@localhost:5672",
-		prefetchCount:      100,
+		prefetchCount:      1,
 		queueNameDelimiter: "-",
 		drainTimeout:       20 * time.Second,
 		reconnectAttempts:  60,

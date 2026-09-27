@@ -13,7 +13,7 @@ func TestNewBrokerDefaults(t *testing.T) {
 	assert.Equal(t, "my-queue", b.Endpoint())
 	assert.Assert(t, !b.sendOnly)
 	assert.Equal(t, "amqp://guest:guest@localhost:5672", b.cfg.url)
-	assert.Equal(t, 100, b.cfg.prefetchCount)
+	assert.Equal(t, 1, b.cfg.prefetchCount)
 	assert.Equal(t, "-", b.cfg.queueNameDelimiter)
 	assert.Equal(t, 20*time.Second, b.cfg.drainTimeout)
 }
