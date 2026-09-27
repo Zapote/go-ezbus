@@ -96,3 +96,18 @@ func TestRetryLogsWithTheContext(t *testing.T) {
 		t.Error("the retry line was not logged with the message context")
 	}
 }
+
+func TestRetryStopsWhenTheContextHasEnded(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	n := 0
+
+	attempts, err := receive(ctx, "handle", func() error {
+		n++
+		cancel()
+		return ctx.Err()
+	}, 5)
+
+	assert.Equal(t, 1, n)
+	assert.Equal(t, 1, attempts)
+	assert.Check(t, errors.Is(err, context.Canceled))
+}

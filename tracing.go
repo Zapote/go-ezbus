@@ -36,8 +36,11 @@ func startPublish(ctx context.Context, destination string, h map[string]string) 
 // context of the attempt that failed, possibly days ago. The error header
 // tells it apart, and it gets a new trace with a link to the old one
 // instead of continuing it.
-func startProcess(queue string, messageName string, h map[string]string) (context.Context, trace.Span) {
-	ctx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.MapCarrier(h))
+//
+// The span lives in parent, the context the broker gave the message, so
+// that the handler is cancelled when the broker gives up waiting for it.
+func startProcess(parent context.Context, queue string, messageName string, h map[string]string) (context.Context, trace.Span) {
+	ctx := otel.GetTextMapPropagator().Extract(parent, propagation.MapCarrier(h))
 
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindConsumer),
@@ -54,7 +57,7 @@ func startProcess(queue string, messageName string, h map[string]string) (contex
 			opts = append(opts, trace.WithLinks(trace.Link{SpanContext: sc}))
 		}
 		opts = append(opts, trace.WithAttributes(attribute.Bool("ezbus.rerun", true)))
-		ctx = context.Background()
+		ctx = parent
 	}
 
 	return otel.Tracer(tracerName).Start(ctx, "process "+queue, opts...)

@@ -17,10 +17,11 @@ const (
 	operationPublish = "publish"
 	operationProcess = "process"
 
-	outcomeOK         = "ok"
-	outcomeError      = "error"
-	outcomeErrorQueue = "error_queue"
-	outcomeDiscarded  = "discarded"
+	outcomeOK          = "ok"
+	outcomeError       = "error"
+	outcomeErrorQueue  = "error_queue"
+	outcomeDiscarded   = "discarded"
+	outcomeInterrupted = "interrupted"
 )
 
 // The instruments follow the OpenTelemetry semantic conventions for

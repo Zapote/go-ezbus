@@ -25,6 +25,11 @@ type Broker struct {
 	sendOnly    bool
 	draining    atomic.Bool
 
+	// handling is the context of every message. interrupt cancels it
+	// when a shutdown has waited long enough for the handler.
+	handling  context.Context
+	interrupt context.CancelFunc
+
 	// mu guards what a reconnect replaces while Shutdown reads it.
 	mu             sync.Mutex
 	socket         net.Conn
@@ -52,11 +57,15 @@ func NewBroker(queue string, opts ...Option) *Broker {
 		opt(cfg)
 	}
 
+	handling, interrupt := context.WithCancel(context.Background())
+
 	return &Broker{
 		queueName:   queue,
 		consumerTag: consumerTag(queue),
 		sendOnly:    queue == "",
 		cfg:         cfg,
+		handling:    handling,
+		interrupt:   interrupt,
 	}
 }
 
@@ -125,14 +134,18 @@ func (b *Broker) Stop() error {
 
 // Shutdown stops taking messages, lets the handler that is running finish
 // and ack, puts the deliveries it has buffered back on the queue and closes
-// the connection. When ctx ends first the connection is cut without
-// waiting for the server, and the message in the handler is delivered
-// again.
+// the connection. When ctx ends first the context of the message in the
+// handler is cancelled, the connection is cut without waiting for the
+// server, and the message is delivered again.
 func (b *Broker) Shutdown(ctx context.Context) error {
 	if !b.draining.CompareAndSwap(false, true) {
 		return nil
 	}
-	stopCutting := context.AfterFunc(ctx, b.cutConnection)
+	defer b.interrupt()
+	stopCutting := context.AfterFunc(ctx, func() {
+		b.interrupt()
+		b.cutConnection()
+	})
 
 	b.mu.Lock()
 	receive, drained := b.receiveChannel, b.drained
@@ -342,7 +355,7 @@ func (b *Broker) consume() error {
 // failed has neither handled the message nor moved it to the error queue,
 // so the message goes back on the queue.
 func (b *Broker) process(d amqp.Delivery) {
-	m := ezbus.NewMessage(extractHeaders(d.Headers), d.Body)
+	m := ezbus.NewMessage(extractHeaders(d.Headers), d.Body).WithContext(b.handling)
 	name := m.Headers[headers.MessageName]
 
 	if err := b.handler(m); err != nil {

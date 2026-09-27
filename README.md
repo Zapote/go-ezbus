@@ -58,7 +58,7 @@ bus.Stop()
 
 `Stop` waits at most the drain timeout: 20 seconds, or what the broker is given with `rabbitmq.WithDrainTimeout`. Keep it below the time the process is given to exit, `terminationGracePeriodSeconds` in Kubernetes. `Shutdown(ctx)` waits until `ctx` ends instead.
 
-When the time runs out the connection is closed anyway, and the message in the handler is delivered again.
+When the time runs out the context of the message is cancelled and the connection closed. A handler that passes `m.Context()` on to its database calls and HTTP requests returns at once. Its message goes back on the queue, not to the error queue, and is delivered again.
 
 ## Traces and metrics
 
@@ -74,7 +74,7 @@ Metrics:
 | --- | --- | --- |
 | `messaging.client.sent.messages` | counter | sends and publishes, by destination and outcome |
 | `messaging.client.operation.duration` | histogram, s | time to send or publish |
-| `messaging.client.consumed.messages` | counter | handled messages, by queue, message name and outcome: `ok`, `error_queue` or `discarded` |
+| `messaging.client.consumed.messages` | counter | handled messages, by queue, message name and outcome: `ok`, `error_queue`, `discarded` or `interrupted` |
 | `messaging.process.duration` | histogram, s | time to handle a message, all attempts included |
 | `ezbus.process.attempts` | histogram | attempts it took; five means the message ended on the error queue |
 

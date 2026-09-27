@@ -7,9 +7,9 @@ import (
 	"github.com/zapote/go-ezbus/logger"
 )
 
-// receive runs fn up to limit times, until it succeeds, and returns how
-// many attempts it took. Every failed attempt is recorded on the span in
-// ctx, so the retries show in the trace.
+// receive runs fn up to limit times, until it succeeds or ctx ends, and
+// returns how many attempts it took. Every failed attempt is recorded on
+// the span in ctx, so the retries show in the trace.
 func receive(ctx context.Context, messageName string, fn func() error, limit int) (attempt int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -27,6 +27,9 @@ func receive(ctx context.Context, messageName string, fn func() error, limit int
 			default:
 				logger.ErrorContext(ctx, "attempt failed", "attempt", attempt, "message", messageName, "err", err)
 				recordAttempt(ctx, attempt, err)
+				if ctx.Err() != nil {
+					return attempt, err
+				}
 				continue
 			}
 		}
