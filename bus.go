@@ -192,9 +192,13 @@ func (b *bus) handle(m Message) (err error) {
 	m.Headers[headers.Error] = err.Error()
 	markErrorQueued(ctx, m.Headers)
 
-	logger.ErrorContext(ctx, "message put on error queue", "message", n, "queue", eq, "err", err)
+	if sendErr := b.broker.Send(eq, m); sendErr != nil {
+		logger.ErrorContext(ctx, "message lost, the error queue could not take it", "message", n, "queue", eq, "err", err, "sendErr", sendErr)
+		return nil
+	}
 
-	return b.broker.Send(eq, m)
+	logger.ErrorContext(ctx, "message put on error queue", "message", n, "queue", eq, "err", err)
+	return nil
 }
 
 func (b *bus) getHeaders(msgType reflect.Type, dst string) map[string]string {

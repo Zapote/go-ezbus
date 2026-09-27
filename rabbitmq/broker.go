@@ -196,14 +196,31 @@ func (b *Broker) consume() error {
 
 	go func() {
 		for d := range deliveries {
-			headers := extractHeaders(d.Headers)
-			m := ezbus.Message{Headers: headers, Body: d.Body}
-			b.handler(m)
-			b.receiveChannel.Ack(d.DeliveryTag, false)
+			b.process(d)
 		}
 	}()
 
 	return nil
+}
+
+// process acks the delivery when the handler succeeded. A handler that
+// failed has neither handled the message nor moved it to the error queue,
+// so the message goes back on the queue.
+func (b *Broker) process(d amqp.Delivery) {
+	m := ezbus.NewMessage(extractHeaders(d.Headers), d.Body)
+	name := m.Headers[headers.MessageName]
+
+	if err := b.handler(m); err != nil {
+		logger.ErrorContext(m.Context(), "message put back on the queue", "message", name, "queue", b.queueName, "err", err)
+		if err := d.Nack(false, true); err != nil {
+			logger.ErrorContext(m.Context(), "nack failed", "message", name, "queue", b.queueName, "err", err)
+		}
+		return
+	}
+
+	if err := d.Ack(false); err != nil {
+		logger.ErrorContext(m.Context(), "ack failed, the message will be delivered again", "message", name, "queue", b.queueName, "err", err)
+	}
 }
 
 func (b *Broker) declareQueues() error {

@@ -114,6 +114,24 @@ func TestHandlePanicSendsToErrorQueue(t *testing.T) {
 	assert.Equal(t, broker.sentDst, fmt.Sprintf("%s-error", broker.Endpoint()))
 }
 
+func TestHandleDoesNotPutBackAMessageTheErrorQueueCouldNotTake(t *testing.T) {
+	fb := newFakeBroker()
+	fb.sendErr = errors.New("error queue out of reach")
+	r := NewRouter()
+	r.Handle("FakeMessage", func(m Message) error {
+		return errors.New("Error in message")
+	})
+	nb := NewBus(fb, r)
+
+	go nb.Go()
+	defer nb.Stop()
+	<-fb.started
+	err := fb.handle(NewMessage(map[string]string{headers.MessageName: "FakeMessage"}, nil))
+
+	assert.NilError(t, err)
+	assert.Equal(t, fb.sentDst, "fake-broker-error")
+}
+
 type FakeMessage struct {
 	ID string
 }
@@ -121,6 +139,7 @@ type FakeMessage struct {
 type FakeBroker struct {
 	sentMessage interface{}
 	sentDst     string
+	sendErr     error
 	handle      MessageHandler
 	started     chan struct{}
 }
@@ -134,7 +153,7 @@ func newFakeBroker() *FakeBroker {
 func (b *FakeBroker) Send(dst string, msg Message) error {
 	b.sentDst = dst
 	b.sentMessage = msg
-	return nil
+	return b.sendErr
 }
 
 func (b *FakeBroker) Publish(msg Message) error {
