@@ -72,3 +72,14 @@ func waitFor(t *testing.T, ch <-chan struct{}, limit time.Duration, what string)
 		t.Fatalf("timed out waiting for %s", what)
 	}
 }
+
+func eventually(t *testing.T, limit time.Duration, what string, ok func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(limit)
+	for !ok() {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", what)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}

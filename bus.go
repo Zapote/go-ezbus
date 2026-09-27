@@ -179,7 +179,7 @@ func (b *bus) handle(m Message) (err error) {
 	queue := b.broker.Endpoint()
 	start := time.Now()
 
-	ctx, span := startProcess(queue, n, m.Headers)
+	ctx, span := startProcess(m.Context(), queue, n, m.Headers)
 	defer span.End()
 	m = m.WithContext(ctx)
 
@@ -199,6 +199,13 @@ func (b *bus) handle(m Message) (err error) {
 	}
 
 	failAfterAttempts(span, err)
+
+	if ctx.Err() != nil {
+		logger.WarnContext(ctx, "message interrupted by shutdown", "message", n, "queue", queue, "err", err)
+		recordProcess(ctx, queue, n, start, attempts, outcomeInterrupted)
+		return err
+	}
+
 	recordProcess(ctx, queue, n, start, attempts, outcomeErrorQueue)
 
 	eq := fmt.Sprintf("%s-error", queue)

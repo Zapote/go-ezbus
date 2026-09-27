@@ -175,6 +175,44 @@ func TestShutdownReturnsWhenTheServerStopsAnswering(t *testing.T) {
 	}
 }
 
+func TestShutdownInterruptsTheHandlerWhenTheDeadlinePasses(t *testing.T) {
+	const queue = "drain-test-interrupt"
+	freshQueue(t, queue)
+
+	var calls atomic.Int32
+	started := make(chan struct{}, 10)
+	interrupted := make(chan struct{}, 10)
+
+	router := ezbus.NewRouter()
+	router.Handle("test-message", func(m ezbus.Message) error {
+		calls.Add(1)
+		started <- struct{}{}
+		select {
+		case <-m.Context().Done():
+			interrupted <- struct{}{}
+			return m.Context().Err()
+		case <-time.After(10 * time.Second):
+			return nil
+		}
+	})
+	bus := ezbus.NewBus(NewBroker(queue), router)
+	assert.NilError(t, bus.Go())
+	sendTo(t, queue, "interrupt-me")
+	waitFor(t, started, 5*time.Second, "the handler to start")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	err := bus.Shutdown(ctx)
+
+	assert.Assert(t, errors.Is(err, context.DeadlineExceeded), "got %v", err)
+	waitFor(t, interrupted, time.Second, "the handler to be interrupted")
+	eventually(t, 2*time.Second, "the message to be back on the queue", func() bool {
+		return ready(t, queue) == 1
+	})
+	assert.Equal(t, int32(1), calls.Load())
+	assert.Equal(t, 0, ready(t, queue+"-error"))
+}
+
 func TestShutdownOfASendOnlyBroker(t *testing.T) {
 	b := NewBroker("")
 	assert.NilError(t, b.Start(func(m ezbus.Message) error { return nil }))
