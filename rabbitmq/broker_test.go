@@ -19,11 +19,13 @@ func TestSend(t *testing.T) {
 	v := &validator{}
 	v.queue = "send-validator"
 	v.start()
+	defer v.stop()
 
 	b := NewBroker("")
 	b.Start(func(m ezbus.Message) error {
 		return nil
 	})
+	defer b.Stop()
 	h := make(map[string]string)
 	h[headers.MessageName] = "validation-message"
 	m := ezbus.NewMessage(h, []byte("message-body-sent"))
@@ -43,9 +45,11 @@ func TestPublish(t *testing.T) {
 	b.Start(func(m ezbus.Message) error {
 		return nil
 	})
+	defer b.Stop()
 	v := &validator{}
 	v.queue = "publish-validator"
 	v.start()
+	defer v.stop()
 	v.b.Subscribe("test-publisher", "validation-message")
 
 	h := make(map[string]string)
@@ -80,6 +84,12 @@ func (v *validator) start() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// stop ends the consumer. One left behind takes messages meant for the
+// validator of a later run.
+func (v *validator) stop() {
+	v.b.Stop()
 }
 
 func (v *validator) waitOne() {
