@@ -170,6 +170,10 @@ func (b *FakeBroker) Stop() error {
 	return nil
 }
 
+func (b *FakeBroker) Shutdown(ctx context.Context) error {
+	return nil
+}
+
 func (b *FakeBroker) Subscribe(queueName string, messageName string) error {
 	return nil
 }
