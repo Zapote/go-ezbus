@@ -52,8 +52,13 @@ bus.Go()
 
 `Stop` takes no more messages and waits for the handler that is running, so its message is acked before the connection closes. Deliveries the broker had buffered go back on the queue in the order they came.
 
+`Run` is `Go`, a wait and `Stop` in one call. It returns when the context has ended and the bus has stopped:
+
 ```go
-bus.Stop()
+ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+defer cancel()
+
+err := bus.Run(ctx)
 ```
 
 `Stop` waits at most the drain timeout: 20 seconds, or what the broker is given with `rabbitmq.WithDrainTimeout`. Keep it below the time the process is given to exit, `terminationGracePeriodSeconds` in Kubernetes. `Shutdown(ctx)` waits until `ctx` ends instead.

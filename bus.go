@@ -3,6 +3,7 @@ package ezbus
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -50,9 +51,10 @@ type Subscriber interface {
 
 // StarterStopper interface. Stop and Shutdown both let the handler that is
 // running finish: Stop within the broker's drain timeout, Shutdown until
-// ctx ends.
+// ctx ends. Run is Go, a wait for ctx to end, and Stop.
 type StarterStopper interface {
 	Go() error
+	Run(ctx context.Context) error
 	Stop() error
 	Shutdown(ctx context.Context) error
 }
@@ -74,7 +76,8 @@ func NewBus(b Broker, r Router) Bus {
 	return &bus
 }
 
-// Go starts the bus and listens to incoming messages.
+// Go starts the bus and listens to incoming messages. When a subscription
+// fails the broker is stopped again.
 func (b *bus) Go() error {
 	err := b.broker.Start(b.handle)
 	if err != nil {
@@ -83,12 +86,22 @@ func (b *bus) Go() error {
 	for _, s := range b.subscribers {
 		err = b.broker.Subscribe(s.endpoint, s.messageName)
 		if err != nil {
-			return err
+			return errors.Join(err, b.broker.Stop())
 		}
 	}
 
 	logger.Info("Bus is on the Go!")
 	return nil
+}
+
+// Run starts the bus, takes messages until ctx ends and stops the bus.
+// With a ctx from signal.NotifyContext that is the life of a service.
+func (b *bus) Run(ctx context.Context) error {
+	if err := b.Go(); err != nil {
+		return err
+	}
+	<-ctx.Done()
+	return b.Stop()
 }
 
 // Stop takes no more messages and waits for the handler that is running,
