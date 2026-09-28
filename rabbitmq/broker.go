@@ -114,11 +114,11 @@ func (b *Broker) Start(h ezbus.MessageHandler) error {
 	}
 
 	if err := b.declareQueues(); err != nil {
-		return err
+		return errors.Join(err, b.closeConnection())
 	}
 
 	if err := b.consume(); err != nil {
-		return err
+		return errors.Join(err, b.closeConnection())
 	}
 
 	logger.Info("RabbitMQ broker started")
