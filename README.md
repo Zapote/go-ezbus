@@ -1,5 +1,5 @@
 
-# go-ezbus [![CircleCI](https://circleci.com/gh/Zapote/go-ezbus/tree/master.svg?style=shield)](https://circleci.com/gh/zapote/go-ezbus/tree/master) 
+# go-ezbus [![CI](https://github.com/Zapote/go-ezbus/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Zapote/go-ezbus/actions/workflows/ci.yml)
 
 <img src="logo.png" align="right" width="140" />
 
