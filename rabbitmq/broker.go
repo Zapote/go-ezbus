@@ -37,6 +37,13 @@ type Broker struct {
 	sendChannel    *amqp.Channel
 	receiveChannel *amqp.Channel
 	drained        chan struct{}
+	bindings       []binding
+}
+
+// binding is a subscription: messages named messageName from endpoint's exchange.
+type binding struct {
+	endpoint    string
+	messageName string
 }
 
 // NewBroker creates a RabbitMQ broker for queue. An empty queue gives a
@@ -59,8 +66,13 @@ func NewBroker(queue string, opts ...Option) *Broker {
 
 	handling, interrupt := context.WithCancel(context.Background())
 
+	name := queue
+	if cfg.exclusive && queue != "" {
+		name = consumerTag(queue)
+	}
+
 	return &Broker{
-		queueName:   queue,
+		queueName:   name,
 		consumerTag: consumerTag(queue),
 		sendOnly:    queue == "",
 		cfg:         cfg,
@@ -91,6 +103,9 @@ func (b *Broker) Send(dst string, m ezbus.Message) error {
 
 // Publish publishes message on exhange
 func (b *Broker) Publish(m ezbus.Message) error {
+	if b.cfg.exclusive {
+		return errors.New("Publish: an exclusive queue has no exchange to publish on")
+	}
 	key := m.Headers[headers.MessageName]
 	ch, err := b.conn.Channel()
 	if err != nil {
@@ -219,12 +234,17 @@ func (b *Broker) Endpoint() string {
 	return b.queueName
 }
 
-// Subscribe to messages from specific endpoint
+// Subscribe to messages from specific endpoint. An exclusive queue is bound
+// again after a reconnect.
 func (b *Broker) Subscribe(endpoint string, messageName string) error {
 	if messageName == "" {
 		messageName = "#"
 	}
-	return queueBind(b.receiveChannel, b.Endpoint(), messageName, endpoint)
+	b.mu.Lock()
+	b.bindings = append(b.bindings, binding{endpoint, messageName})
+	receive := b.receiveChannel
+	b.mu.Unlock()
+	return queueBind(receive, b.Endpoint(), messageName, endpoint)
 }
 
 func (b *Broker) connect() error {
@@ -303,6 +323,13 @@ func (b *Broker) reconnect() {
 			return
 		}
 
+		if err := b.restore(); err != nil {
+			logger.Warnf("Failed to restore the exclusive queue: %s", err.Error())
+			b.closeConnection()
+			time.Sleep(b.cfg.reconnectDelay)
+			continue
+		}
+
 		if err := b.consume(); err != nil {
 			logger.Warnf("Failed to consume: %s", err.Error())
 			continue
@@ -316,6 +343,29 @@ func (b *Broker) reconnect() {
 		return
 	}
 	panic("Unable to reconnect to broker. Giving up after many attempts.")
+}
+
+// restore declares an exclusive queue again and binds its subscriptions,
+// since the server deleted both with the old connection. A durable queue
+// keeps them.
+func (b *Broker) restore() error {
+	if !b.cfg.exclusive || b.sendOnly {
+		return nil
+	}
+	if err := b.declareQueues(); err != nil {
+		return err
+	}
+
+	b.mu.Lock()
+	bindings, receive := append([]binding(nil), b.bindings...), b.receiveChannel
+	b.mu.Unlock()
+
+	for _, s := range bindings {
+		if err := queueBind(receive, b.queueName, s.messageName, s.endpoint); err != nil {
+			return fmt.Errorf("Bind %q from %q: %w", s.messageName, s.endpoint, err)
+		}
+	}
+	return nil
 }
 
 func (b *Broker) consume() error {
@@ -382,18 +432,27 @@ func (b *Broker) declareQueues() error {
 	if b.sendOnly {
 		return nil
 	}
+	declare := declareQueue
+	if b.cfg.exclusive {
+		declare = declareExclusiveQueue
+	}
+
 	//declare queues
-	queue, err := declareQueue(b.receiveChannel, b.queueName)
+	queue, err := declare(b.receiveChannel, b.queueName)
 	if err != nil {
 		return fmt.Errorf("Declare Queue : %s", err)
 	}
 	logger.Infof("Queue declared. (%q %d messages, %d consumers)", queue.Name, queue.Messages, queue.Consumers)
 
-	queueErr, err := declareQueue(b.receiveChannel, fmt.Sprintf("%s%serror", b.queueName, b.cfg.queueNameDelimiter))
+	queueErr, err := declare(b.receiveChannel, fmt.Sprintf("%s%serror", b.queueName, b.cfg.queueNameDelimiter))
 	if err != nil {
 		return fmt.Errorf("Declare Error Queue : %s", err)
 	}
 	logger.Infof("Queue declared. (%q %d messages)", queueErr.Name, queueErr.Messages)
+
+	if b.cfg.exclusive {
+		return nil
+	}
 
 	//declare exchange
 	err = declareExchange(b.receiveChannel, b.queueName)

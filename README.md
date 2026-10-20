@@ -65,6 +65,21 @@ err := bus.Run(ctx)
 
 When the time runs out the context of the message is cancelled and the connection closed. A handler that passes `m.Context()` on to its database calls and HTTP requests returns at once. Its message goes back on the queue, not to the error queue, and is delivered again.
 
+## A queue per instance
+
+The instances of a service share its queue, so each message is handled by one of them. When every instance needs every message, for example to refresh what it holds in memory, `rabbitmq.WithExclusiveQueue` gives each instance a queue of its own, named after the queue and the host, that lives as long as the connection. Use it for a second bus beside the service's own:
+
+```go
+b := rabbitmq.NewBroker("my-queue-instance", rabbitmq.WithExclusiveQueue())
+r := ezbus.NewRouter()
+r.Handle("OrderPlaced", refresh)
+
+instance := ezbus.NewBus(b, r)
+instance.SubscribeMessage("my-queue", "OrderPlaced")
+```
+
+The error queue lives as long as the queue. The broker declares no exchange, so it cannot publish. After a reconnect it declares the queue and binds the subscriptions again, and a message published in between is lost.
+
 ## Traces and metrics
 
 The bus is instrumented with the OpenTelemetry API. Install a tracer provider and a meter provider in the service and it starts reporting. Without them everything is a no-op.
