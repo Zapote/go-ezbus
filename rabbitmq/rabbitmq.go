@@ -11,6 +11,12 @@ func declareQueue(c *amqp.Channel, name string) (amqp.Queue, error) {
 	return c.QueueDeclare(name, true, false, false, false, nil)
 }
 
+// declareExclusiveQueue declares a queue that only this connection uses and
+// that the server deletes with it.
+func declareExclusiveQueue(c *amqp.Channel, name string) (amqp.Queue, error) {
+	return c.QueueDeclare(name, false, false, true, false, nil)
+}
+
 func declareExchange(c *amqp.Channel, name string) error {
 	return c.ExchangeDeclare(name, amqp.ExchangeTopic, true, false, false, false, nil)
 }

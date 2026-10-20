@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -30,4 +31,10 @@ func TestNewBrokerOptions(t *testing.T) {
 	assert.Equal(t, 10, b.cfg.prefetchCount)
 	assert.Equal(t, ".", b.cfg.queueNameDelimiter)
 	assert.Equal(t, time.Minute, b.cfg.drainTimeout)
+}
+
+func TestExclusiveQueueIsNamedAfterTheHost(t *testing.T) {
+	host, _ := os.Hostname()
+	assert.Equal(t, NewBroker("events", WithExclusiveQueue()).Endpoint(), "events@"+host)
+	assert.Equal(t, NewBroker("events").Endpoint(), "events")
 }

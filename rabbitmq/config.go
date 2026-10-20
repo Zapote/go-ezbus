@@ -12,6 +12,7 @@ type config struct {
 	drainTimeout       time.Duration
 	reconnectAttempts  int
 	reconnectDelay     time.Duration
+	exclusive          bool
 }
 
 // WithURL sets the AMQP URL to connect to.
@@ -44,5 +45,17 @@ func WithQueueNameDelimiter(d string) Option {
 func WithDrainTimeout(d time.Duration) Option {
 	return func(c *config) {
 		c.drainTimeout = d
+	}
+}
+
+// WithExclusiveQueue gives each instance a queue of its own, named queue@host,
+// that lives as long as the connection. Every instance of a service then gets
+// each message it subscribes to instead of sharing them with the others. The
+// error queue lives as long. The broker declares no exchange and so cannot
+// publish, and after a reconnect it declares the queue and binds its
+// subscriptions again.
+func WithExclusiveQueue() Option {
+	return func(c *config) {
+		c.exclusive = true
 	}
 }
