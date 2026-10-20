@@ -15,9 +15,11 @@ func TestFailedStartClosesTheConnection(t *testing.T) {
 	t.Run("declare", func(t *testing.T) {
 		const queue = "start-test-declare"
 		freshQueue(t, queue)
+		// The broker declares the queue without arguments; one with an
+		// argument makes the declaration fail.
 		withChannel(t, func(ch *amqp.Channel) {
 			ch.QueueDelete(queue, false, false, false)
-			_, err := ch.QueueDeclare(queue, false, false, false, false, nil)
+			_, err := ch.QueueDeclare(queue, true, false, false, false, amqp.Table{"x-max-length": int32(1)})
 			assert.NilError(t, err)
 		})
 
